@@ -1,0 +1,137 @@
+level,component,timestamp,datetime,reason
+pod,Mysql02,1614841020.0,2021-03-04 14:57:00,high memory usage
+pod,Redis02,1614852540.0,2021-03-04 18:09:00,high memory usage
+pod,Tomcat01,1614982800.0,2021-03-06 06:20:00,high memory usage
+pod,Tomcat02,1614856920.0,2021-03-04 19:22:00,network latency
+pod,Tomcat04,1614963180.0,2021-03-06 00:53:00,network latency
+pod,Tomcat03,1615013160.0,2021-03-06 14:46:00,network latency
+pod,apache02,1615027920.0,2021-03-06 18:52:00,network packet loss
+pod,Tomcat01,1615043880.0,2021-03-06 23:18:00,network latency
+pod,MG01,1615044960.0,2021-03-06 23:36:00,network latency
+pod,MG02,1615048320.0,2021-03-07 00:32:00,network packet loss
+pod,Tomcat02,1615073520.0,2021-03-07 07:32:00,network latency
+pod,MG01,1615104480.0,2021-03-07 16:08:00,network latency
+pod,Tomcat04,1615105740.0,2021-03-07 16:29:00,network packet loss
+pod,apache02,1615114740.0,2021-03-07 18:59:00,network latency
+pod,Tomcat01,1615124160.0,2021-03-07 21:36:00,network packet loss
+pod,apache02,1615248780.0,2021-03-09 08:13:00,network packet loss
+pod,IG02,1615252680.0,2021-03-09 09:18:00,network packet loss
+pod,Tomcat01,1615260000.0,2021-03-09 11:20:00,network latency
+pod,MG02,1615266600.0,2021-03-09 13:10:00,network packet loss
+pod,MG02,1615270440.0,2021-03-09 14:14:00,network latency
+pod,Tomcat01,1615274700.0,2021-03-09 15:25:00,network packet loss
+pod,MG02,1615280160.0,2021-03-09 16:56:00,network latency
+pod,Tomcat02,1615288440.0,2021-03-09 19:14:00,network latency
+pod,apache01,1615292700.0,2021-03-09 20:25:00,network packet loss
+pod,apache01,1615295220.0,2021-03-09 21:07:00,network latency
+pod,apache02,1615331940.0,2021-03-10 07:19:00,network latency
+pod,Tomcat01,1615344180.0,2021-03-10 10:43:00,network packet loss
+pod,apache02,1615359720.0,2021-03-10 15:02:00,network packet loss
+pod,apache02,1615360740.0,2021-03-10 15:19:00,network latency
+pod,Tomcat01,1615365720.0,2021-03-10 16:42:00,network latency
+pod,Tomcat03,1615373820.0,2021-03-10 18:57:00,network packet loss
+pod,MG01,1615517640.0,2021-03-12 10:54:00,network packet loss
+pod,Tomcat01,1615522380.0,2021-03-12 12:13:00,network packet loss
+pod,MG02,1615528980.0,2021-03-12 14:03:00,network packet loss
+pod,MG01,1615534680.0,2021-03-12 15:38:00,network packet loss
+pod,apache02,1615537560.0,2021-03-12 16:26:00,network packet loss
+pod,Tomcat03,1615559700.0,2021-03-12 22:35:00,network packet loss
+pod,apache02,1615563180.0,2021-03-12 23:33:00,network packet loss
+pod,MG01,1616452920.0,2021-03-23 06:42:00,network packet loss
+pod,Tomcat04,1616480640.0,2021-03-23 14:24:00,network packet loss
+pod,MG01,1616482200.0,2021-03-23 14:50:00,network packet loss
+pod,Tomcat04,1616489640.0,2021-03-23 16:54:00,network latency
+pod,MG02,1616492520.0,2021-03-23 17:42:00,network latency
+pod,MG01,1616493780.0,2021-03-23 18:03:00,network latency
+pod,Tomcat04,1616504820.0,2021-03-23 21:07:00,network packet loss
+pod,MG02,1614792360.0,2021-03-04 01:26:00,high JVM CPU load
+pod,MG02,1614836760.0,2021-03-04 13:46:00,high JVM CPU load
+pod,IG01,1614863160.0,2021-03-04 21:06:00,high JVM CPU load
+pod,MG02,1614810000.0,2021-03-04 06:20:00,JVM Out of Memory (OOM) Heap
+pod,MG02,1614857760.0,2021-03-04 19:36:00,JVM Out of Memory (OOM) Heap
+pod,MG01,1614866400.0,2021-03-04 22:00:00,JVM Out of Memory (OOM) Heap
+pod,IG01,1614867900.0,2021-03-04 22:25:00,JVM Out of Memory (OOM) Heap
+pod,Tomcat03,1614858540.0,2021-03-04 19:49:00,high disk I/O read usage
+pod,MG01,1614977760.0,2021-03-06 04:56:00,high disk I/O read usage
+pod,IG02,1615015140.0,2021-03-06 15:19:00,high disk space usage
+pod,Tomcat01,1615058460.0,2021-03-07 03:21:00,high disk I/O read usage
+pod,Tomcat01,1615102860.0,2021-03-07 15:41:00,high disk I/O read usage
+pod,apache01,1615224000.0,2021-03-09 01:20:00,high disk I/O read usage
+pod,IG02,1615237860.0,2021-03-09 05:11:00,high disk space usage
+pod,Tomcat01,1615275900.0,2021-03-09 15:45:00,high disk I/O read usage
+pod,apache01,1615282740.0,2021-03-09 17:39:00,high disk space usage
+pod,Tomcat01,1615315440.0,2021-03-10 02:44:00,high disk I/O read usage
+pod,Tomcat04,1615319040.0,2021-03-10 03:44:00,high disk space usage
+pod,Tomcat02,1615357260.0,2021-03-10 14:21:00,high disk I/O read usage
+pod,apache02,1615362180.0,2021-03-10 15:43:00,high disk I/O read usage
+pod,IG02,1615384980.0,2021-03-10 22:03:00,high disk I/O read usage
+pod,MG02,1615385940.0,2021-03-10 22:19:00,high disk I/O read usage
+pod,IG02,1615536900.0,2021-03-12 16:15:00,high disk I/O read usage
+pod,Redis02,1614812460.0,2021-03-04 07:01:00,high CPU usage
+pod,Redis02,1614860040.0,2021-03-04 20:14:00,high CPU usage
+pod,Mysql01,1614967200.0,2021-03-06 02:00:00,high CPU usage
+pod,IG01,1614972960.0,2021-03-06 03:36:00,high CPU usage
+pod,Tomcat04,1615034640.0,2021-03-06 20:44:00,high CPU usage
+pod,Redis02,1615053120.0,2021-03-07 01:52:00,high CPU usage
+pod,IG02,1615070100.0,2021-03-07 06:35:00,high CPU usage
+pod,Tomcat03,1615075860.0,2021-03-07 08:11:00,high CPU usage
+pod,IG02,1615086540.0,2021-03-07 11:09:00,high CPU usage
+pod,IG01,1615094640.0,2021-03-07 13:24:00,high CPU usage
+pod,Tomcat01,1615110720.0,2021-03-07 17:52:00,high CPU usage
+pod,Tomcat04,1615255020.0,2021-03-09 09:57:00,high CPU usage
+pod,Redis02,1615272120.0,2021-03-09 14:42:00,high CPU usage
+pod,IG02,1615284480.0,2021-03-09 18:08:00,high CPU usage
+pod,Tomcat03,1615290120.0,2021-03-09 19:42:00,high CPU usage
+pod,IG02,1615300320.0,2021-03-09 22:32:00,high CPU usage
+pod,IG01,1615306740.0,2021-03-10 00:19:00,high CPU usage
+pod,Tomcat01,1615322280.0,2021-03-10 04:38:00,high CPU usage
+pod,apache01,1615336200.0,2021-03-10 08:30:00,high CPU usage
+pod,IG02,1615515840.0,2021-03-12 10:24:00,high CPU usage
+pod,MG01,1615533000.0,2021-03-12 15:10:00,high CPU usage
+pod,Redis02,1615540440.0,2021-03-12 17:14:00,high CPU usage
+pod,Redis01,1615553160.0,2021-03-12 20:46:00,high CPU usage
+pod,Tomcat04,1615091760.0,2021-03-07 12:36:00,high memory usage
+pod,Tomcat04,1615305180.0,2021-03-09 23:53:00,high memory usage
+pod,Mysql01,1615515120.0,2021-03-12 10:12:00,high memory usage
+pod,Tomcat01,1616438160.0,2021-03-23 02:36:00,high memory usage
+pod,MG02,1616511840.0,2021-03-23 23:04:00,network packet loss
+pod,Tomcat03,1616555280.0,2021-03-24 11:08:00,network packet loss
+pod,Tomcat01,1616556660.0,2021-03-24 11:31:00,network packet loss
+pod,Tomcat02,1616567400.0,2021-03-24 14:30:00,network latency
+pod,MG01,1616569560.0,2021-03-24 15:06:00,network latency
+pod,MG01,1616585040.0,2021-03-24 19:24:00,network latency
+pod,MG02,1616586600.0,2021-03-24 19:50:00,network latency
+pod,Tomcat03,1616589240.0,2021-03-24 20:34:00,network packet loss
+pod,MG02,1616602020.0,2021-03-25 00:07:00,network latency
+pod,Tomcat03,1616629200.0,2021-03-25 07:40:00,network packet loss
+pod,Tomcat03,1616655240.0,2021-03-25 14:54:00,network latency
+pod,Tomcat01,1616664120.0,2021-03-25 17:22:00,network packet loss
+pod,IG02,1616667180.0,2021-03-25 18:13:00,network latency
+pod,Tomcat04,1616670900.0,2021-03-25 19:15:00,network packet loss
+pod,MG01,1616675100.0,2021-03-25 20:25:00,network latency
+pod,apache01,1616676600.0,2021-03-25 20:50:00,network packet loss
+pod,MG02,1616680860.0,2021-03-25 22:01:00,network packet loss
+pod,Tomcat02,1615060740.0,2021-03-07 03:59:00,JVM Out of Memory (OOM) Heap
+pod,Tomcat02,1615278180.0,2021-03-09 16:23:00,JVM Out of Memory (OOM) Heap
+pod,Tomcat02,1615369860.0,2021-03-10 17:51:00,JVM Out of Memory (OOM) Heap
+pod,MG01,1616432460.0,2021-03-23 01:01:00,high disk I/O read usage
+pod,MG01,1616435220.0,2021-03-23 01:47:00,high disk I/O read usage
+pod,Tomcat02,1616482980.0,2021-03-23 15:03:00,high disk I/O read usage
+pod,MG02,1616560560.0,2021-03-24 12:36:00,high disk I/O read usage
+pod,apache01,1616565900.0,2021-03-24 14:05:00,high disk space usage
+pod,apache01,1616602740.0,2021-03-25 00:19:00,high disk I/O read usage
+pod,MG02,1616611380.0,2021-03-25 02:43:00,high disk I/O read usage
+pod,Tomcat01,1616634240.0,2021-03-25 09:04:00,high disk I/O read usage
+pod,Tomcat03,1616428980.0,2021-03-23 00:03:00,high CPU usage
+pod,Tomcat03,1616496180.0,2021-03-23 18:43:00,high CPU usage
+pod,Tomcat01,1616575620.0,2021-03-24 16:47:00,high CPU usage
+pod,apache02,1616625600.0,2021-03-25 06:40:00,high CPU usage
+pod,MG01,1616636280.0,2021-03-25 09:38:00,high CPU usage
+pod,Mysql02,1616644380.0,2021-03-25 11:53:00,high CPU usage
+pod,Mysql02,1616658120.0,2021-03-25 15:42:00,high CPU usage
+pod,IG02,1616670000.0,2021-03-25 19:00:00,high CPU usage
+pod,Tomcat04,1616672400.0,2021-03-25 19:40:00,high CPU usage
+pod,Redis02,1616685360.0,2021-03-25 23:16:00,high CPU usage
+pod,MG01,1614789240.0,2021-03-04 00:34:00,high memory usage
+pod,Mysql02,1614797100.0,2021-03-04 02:45:00,high memory usage
+pod,Redis02,1614807060.0,2021-03-04 05:31:00,high memory usage
