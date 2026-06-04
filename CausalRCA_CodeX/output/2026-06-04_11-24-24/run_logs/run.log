@@ -1,0 +1,444 @@
+[Config] Dataset=Bank, Cases=0~1, Log=D:\GitHubDownload\OpenRCA\CausalRCA_CodeX\output\2026-06-04_11-24-24\run_logs\run.log
+  Output Dir: D:\GitHubDownload\OpenRCA\CausalRCA_CodeX\output\2026-06-04_11-24-24
+  Causal Graphs Dir: D:\GitHubDownload\OpenRCA\CausalRCA_CodeX\output\2026-06-04_11-24-24\causal_graphs
+
+================================================================================
+  CausalRCA-CodeX Benchmark
+================================================================================
+  Dataset  : Bank
+  Cases    : 0 ~ 0 (1 cases)
+  Max Iters: 30
+  Output   : D:\GitHubDownload\OpenRCA\CausalRCA_CodeX\output\2026-06-04_11-24-24
+================================================================================
+
+################################################################################
+  Case 1/1 | task_1
+################################################################################
+  Instruction: On March 4, 2021, within the time range of 14:30 to 15:00, a single failure was detected in the system. The exact time when the root cause occurred is unknown. Please identify the specific occurrence time of the root cause.
+  Scoring    : The only root cause occurrence time is within 1 minutes (i.e., <=1min) of 2021-03-04 14:57:00
+
+
+======================================================================
+  CausalRCA-Flow | Bank | Row 0
+======================================================================
+  查询: On March 4, 2021, within the time range of 14:30 to 15:00, a single failure was detected in the system. The exact time when the root cause occurred is unknown. Please identify the specific occurrence time of the root cause.
+  时间窗口: 2021-03-04 14:30:00 ~ 2021-03-04 15:00:00
+  候选组件: 14 | 候选原因: 8
+  最大迭代: 30 | LLM: OFF
+
+  [ 0] -> DataAgent                      (数据层未加载)
+        步骤目的: 加载遥测数据+计算全天阈值
+        读取数据: metric.csv/trace.csv/log.csv
+    [DataAgent] 步骤1: 加载 dataset/Bank/metric.csv + trace.csv + log.csv
+    [DataAgent] metric文件=2 trace=1 log=1
+    [DataAgent] KPI序列数=1717 窗口内=1693
+    [DataAgent] trace行数=589396 log行数=59509
+    [DataAgent] 阈值百分位: P95.0/P5.0
+  自评: [####################] 1.00 OK
+  全局: [####################] 1.00 OK
+
+  [ 1] -> AssociationAgent               (异常检测未完成)
+        步骤目的: 异常检测:阈值偏差+故障段
+        读取数据: data_layer.component_kpi_series
+    [AssociationAgent] 读取 data_layer.component_kpi_series=1717 个时序
+    [AssociationAgent] 读取 task.query.candidate_components=14 个候选
+    [AssociationAgent] 阈值: P95/P5, 连续>=min_points=2, 偏差比>=beta_min=0.5
+    [AssociationAgent] 候选组件=14 | min_points=2 beta_min=0.5
+      IG02 (middleware): score=0.7833 故障段=11 KPIs=10
+        - JVM-Memory_7778_JVM_Memory_HeapMemoryMax: 段数=1 max_dev=1.0000
+        - JVM-Memory_7778_JVM_Memory_HeapMemoryUsed: 段数=1 max_dev=1.0000
+        - JVM-Memory_7778_JVM_Memory_NoHeapMemoryUsed: 段数=1 max_dev=1.0000
+        - OSLinux-CPU_CPU-0_SingleCpuUtil: 段数=2 max_dev=1.0000
+        - OSLinux-CPU_CPU_CPUWio: 段数=1 max_dev=0.8163
+        - OSLinux-OSLinux_LOCALDISK_LOCALDISK-sdb_DSKBps: 段数=1 max_dev=0.5000
+        - OSLinux-OSLinux_MEMORY_MEMORY_CacheMem: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_MEMFreeMem: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_MEMUsedMemPerc: 段数=1 max_dev=0.8333
+        - OSLinux-OSLinux_MEMORY_MEMORY_UserMem: 段数=1 max_dev=1.0000
+      Tomcat01 (service): score=0.7333 故障段=10 KPIs=9
+        - OSLinux-CPU_CPU-0_SingleCpuidle: 段数=2 max_dev=0.6678
+        - OSLinux-CPU_CPU-1_SingleCpuUtil: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_CacheMem: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_MEMFreeMem: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_UserMem: 段数=1 max_dev=1.0000
+        - Tomcat-MEMORY_7441-MEMORY_JVMFreeMemory: 段数=1 max_dev=1.0000
+        - Tomcat-MEMORY_7441-MEMORY_JVMMaxMemory: 段数=1 max_dev=1.0000
+        - Tomcat-MEMORY_7441-MEMORY_JVMTotalMemory: 段数=1 max_dev=1.0000
+        - Tomcat-MEMORY_7441-MEMORY_JVMUsedMemory: 段数=1 max_dev=1.0000
+      Tomcat02 (service): score=0.7333 故障段=9 KPIs=9
+        - OSLinux-CPU_CPU-0_SingleCpuUtil: 段数=1 max_dev=1.0000
+        - OSLinux-CPU_CPU-3_SingleCpuUtil: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_CacheMem: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_MEMFreeMem: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_UserMem: 段数=1 max_dev=1.0000
+        - Tomcat-MEMORY_7441-MEMORY_JVMFreeMemory: 段数=1 max_dev=1.0000
+        - Tomcat-MEMORY_7441-MEMORY_JVMMaxMemory: 段数=1 max_dev=1.0000
+        - Tomcat-MEMORY_7441-MEMORY_JVMTotalMemory: 段数=1 max_dev=1.0000
+        - Tomcat-MEMORY_7441-MEMORY_JVMUsedMemory: 段数=1 max_dev=1.0000
+      Tomcat04 (service): score=0.7333 故障段=9 KPIs=9
+        - OSLinux-CPU_CPU-1_SingleCpuUtil: 段数=1 max_dev=1.0000
+        - OSLinux-CPU_CPU-3_SingleCpuUtil: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_CacheMem: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_MEMFreeMem: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_UserMem: 段数=1 max_dev=1.0000
+        - Tomcat-MEMORY_7441-MEMORY_JVMFreeMemory: 段数=1 max_dev=1.0000
+        - Tomcat-MEMORY_7441-MEMORY_JVMMaxMemory: 段数=1 max_dev=1.0000
+        - Tomcat-MEMORY_7441-MEMORY_JVMTotalMemory: 段数=1 max_dev=1.0000
+        - Tomcat-MEMORY_7441-MEMORY_JVMUsedMemory: 段数=1 max_dev=1.0000
+      MG02 (middleware): score=0.6833 故障段=8 KPIs=8
+        - JVM-Memory_7779_JVM_Memory_HeapMemoryMax: 段数=1 max_dev=1.0000
+        - JVM-Memory_7779_JVM_Memory_HeapMemoryUsed: 段数=1 max_dev=1.0000
+        - JVM-Memory_7779_JVM_Memory_NoHeapMemoryUsed: 段数=1 max_dev=1.0000
+        - OSLinux-CPU_CPU-2_SingleCpuUtil: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_CacheMem: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_MEMFreeMem: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_MEMUsedMemPerc: 段数=1 max_dev=0.8333
+        - OSLinux-OSLinux_MEMORY_MEMORY_UserMem: 段数=1 max_dev=1.0000
+      Mysql01 (db): score=0.6833 故障段=8 KPIs=8
+        - Mysql-MySQL_3306_Innodb buffer pool pages dirty: 段数=1 max_dev=1.0500
+        - Mysql-MySQL_3306_Qcache Free Memory: 段数=1 max_dev=1.0000
+        - Mysql-MySQL_3306_SlowQueries: 段数=1 max_dev=0.9700
+        - OSLinux-CPU_CPU_CPUidleutil: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_CacheMem: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_MEMFreeMem: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_MEMUsedMemPerc: 段数=1 max_dev=0.8188
+        - OSLinux-OSLinux_MEMORY_MEMORY_UserMem: 段数=1 max_dev=1.0000
+      Redis01 (redis): score=0.6833 故障段=8 KPIs=8
+        - OSLinux-CPU_CPU-2_SingleCpuUtil: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_CacheMem: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_MEMFreeMem: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_UserMem: 段数=1 max_dev=1.0000
+        - redis-Redis_6379_Redis  (maxmemory): 段数=1 max_dev=1.0000
+        - redis-Redis_6379_Redis  (used_memory): 段数=1 max_dev=1.0000
+        - redis-Redis_6379_Redis  (used_memory_peak): 段数=1 max_dev=1.0000
+        - redis-Redis_6379_Redis  (used_memory_rss): 段数=1 max_dev=1.0000
+      Redis02 (redis): score=0.6833 故障段=8 KPIs=8
+        - OSLinux-CPU_CPU_CPUidleutil: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_CacheMem: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_MEMFreeMem: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_UserMem: 段数=1 max_dev=1.0000
+        - redis-Redis_6379_Redis  (maxmemory): 段数=1 max_dev=1.0000
+        - redis-Redis_6379_Redis  (used_memory): 段数=1 max_dev=1.0000
+        - redis-Redis_6379_Redis  (used_memory_peak): 段数=1 max_dev=1.0000
+        - redis-Redis_6379_Redis  (used_memory_rss): 段数=1 max_dev=1.0000
+      Tomcat03 (service): score=0.6833 故障段=9 KPIs=8
+        - OSLinux-CPU_CPU-2_SingleCpuUtil: 段数=2 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_CacheMem: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_MEMFreeMem: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_UserMem: 段数=1 max_dev=1.0000
+        - Tomcat-MEMORY_7441-MEMORY_JVMFreeMemory: 段数=1 max_dev=1.0000
+        - Tomcat-MEMORY_7441-MEMORY_JVMMaxMemory: 段数=1 max_dev=1.0000
+        - Tomcat-MEMORY_7441-MEMORY_JVMTotalMemory: 段数=1 max_dev=1.0000
+        - Tomcat-MEMORY_7441-MEMORY_JVMUsedMemory: 段数=1 max_dev=1.0000
+      IG01 (middleware): score=0.6333 故障段=7 KPIs=7
+        - JVM-Memory_7778_JVM_Memory_HeapMemoryMax: 段数=1 max_dev=1.0000
+        - JVM-Memory_7778_JVM_Memory_HeapMemoryUsed: 段数=1 max_dev=1.0000
+        - JVM-Memory_7778_JVM_Memory_NoHeapMemoryUsed: 段数=1 max_dev=1.0000
+        - OSLinux-CPU_CPU-0_SingleCpuUtil: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_CacheMem: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_MEMFreeMem: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_UserMem: 段数=1 max_dev=1.0000
+      MG01 (middleware): score=0.6333 故障段=7 KPIs=7
+        - JVM-Memory_7779_JVM_Memory_HeapMemoryMax: 段数=1 max_dev=1.0000
+        - JVM-Memory_7779_JVM_Memory_HeapMemoryUsed: 段数=1 max_dev=1.0000
+        - JVM-Memory_7779_JVM_Memory_NoHeapMemoryUsed: 段数=1 max_dev=1.0000
+        - OSLinux-CPU_CPU-2_SingleCpuUtil: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_CacheMem: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_MEMFreeMem: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_UserMem: 段数=1 max_dev=1.0000
+      Mysql02 (db): score=0.5833 故障段=6 KPIs=6
+        - Mysql-MySQL_3306_Aborted Clients: 段数=1 max_dev=5.6117
+        - Mysql-MySQL_3306_Qcache Free Memory: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_CacheMem: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_MEMFreeMem: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_MEMUsedMemPerc: 段数=1 max_dev=0.8333
+        - OSLinux-OSLinux_MEMORY_MEMORY_UserMem: 段数=1 max_dev=1.0000
+      apache01 (service): score=0.5833 故障段=6 KPIs=6
+        - OSLinux-CPU_CPU_CPUidleutil: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_CacheMem: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_MEMFreeMem: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_MEMUsedMemPerc: 段数=1 max_dev=0.7000
+        - OSLinux-OSLinux_MEMORY_MEMORY_UserMem: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_PROCESS_PROCESS_PROCPPMem: 段数=1 max_dev=1.0000
+      apache02 (service): score=0.5333 故障段=5 KPIs=5
+        - OSLinux-CPU_CPU_CPUidleutil: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_CacheMem: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_MEMFreeMem: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_MEMORY_MEMORY_UserMem: 段数=1 max_dev=1.0000
+        - OSLinux-OSLinux_PROCESS_PROCESS_PROCPPMem: 段数=1 max_dev=1.0000
+  自评: [##############------] 0.70 OK
+  全局: [##############------] 0.70 OK
+
+  [ 2] -> FaultIdentificationAgent       (故障识别未完成)
+        步骤目的: 跨层粗过滤+主层选择+单组件短路
+        读取数据: association_layer.candidate_set
+    [FaultIdAgent] 步骤1: 组件分层（读取 association_layer.candidate_set=14 个组件）
+      层[middleware]: 4个 -> ['IG02', 'MG02', 'IG01', 'MG01']
+      层[service]: 6个 -> ['Tomcat01', 'Tomcat02', 'Tomcat04', 'Tomcat03', 'apache01', 'apache02']
+      层[db]: 2个 -> ['Mysql01', 'Mysql02']
+      层[redis]: 2个 -> ['Redis01', 'Redis02']
+    [FaultIdAgent] 步骤2: 各层 max(异常分数) 聚合
+      层[db]: max_score=0.7292  代表组件=Mysql02
+      层[service]: max_score=0.6211  代表组件=Tomcat01
+      层[middleware]: max_score=0.6175  代表组件=IG02
+      层[redis]: max_score=0.5720  代表组件=Redis01
+    [FaultIdAgent] 步骤3: 主层选择 -> 'db' (max_score=0.7292)
+    [FaultIdAgent] 步骤3: 其他层保留阈值 = 0.7292 * 0.5 = 0.4229
+    [FaultIdAgent] 步骤3: 主层[db]保留=2 其他层保留=11 保留池=1
+    [FaultIdAgent] 步骤4: |refined|=12 > 1, 强制需要因果推理
+    [FaultIdAgent] === 故障识别最终结果 ===
+    [FaultIdAgent] 主层=db 精炼=12 保留=2
+    [FaultIdAgent] 需因果推理=True 单组件短路=否
+    [FaultIdAgent] --- 精炼集合 refined(12) ---
+      精炼: Mysql02 (层=db, evidence=0.7292)
+      精炼: Tomcat01 (层=service, evidence=0.6211)
+      精炼: Tomcat02 (层=service, evidence=0.6211)
+      精炼: Tomcat04 (层=service, evidence=0.6211)
+      精炼: IG02 (层=middleware, evidence=0.6175)
+      精炼: Tomcat03 (层=service, evidence=0.5886)
+      精炼: Redis01 (层=redis, evidence=0.5720)
+      精炼: Redis02 (层=redis, evidence=0.5720)
+      精炼: Mysql01 (层=db, evidence=0.5670)
+      精炼: MG02 (层=middleware, evidence=0.5525)
+      精炼: IG01 (层=middleware, evidence=0.5200)
+      精炼: MG01 (层=middleware, evidence=0.5200)
+    [FaultIdAgent] --- 保留池 reserve(2) ---
+      保留: apache01 (层=service, evidence=0.4297)
+      保留: apache02 (层=service, evidence=0.3897)
+  自评: [#############-------] 0.65 OK
+  全局: [###############-----] 0.75 OK
+
+  [ 3] -> CausalGraphAgent               (因果图未构建)
+        步骤目的: 构建因果图(反转+Scheme-F)
+        读取数据: data_layer.raw_traces+fault_id_layer
+    [CausalGraphAgent] ★ 数据范围说明：
+      - 图1 调用图骨架 → 使用【全天 trace】 (DataAgent.raw_traces_full_day)
+      - 图2 因果图     → 使用【故障窗口内 trace】 (DataAgent.raw_traces)
+      - 故障时间窗   : [1614839400, 1614841200]  (epoch秒)
+      - 人类可读窗口 : 2021-03-04 14:30:00  ~  2021-03-04 15:00:00
+    [CausalGraphAgent] 读取 fault_id_layer.refined_candidates=12 个精炼组件
+    [CausalGraphAgent] expand_mode=direct | EdgeWeight = fused topology + telemetry support
+    [CausalGraphAgent][输入] [图1] 全天 trace: 文件数=1  span行数=12152300
+    [CausalGraphAgent][输入] [图2] 窗口 trace: 文件数=1  span行数=589396
+    [graph_ops] _consume_trace 进度: 总行数=12152300, trace 数=640561 (向量化)
+    [graph_ops] _consume_trace 完成: call_counts=32 对
+    [CausalGraphAgent] 步骤1: 全天 trace→ 调用对数=32, 输入 span行数=12152300 (来自 1 个文件)
+    [CausalGraphAgent] 步骤1 样例: top-5 高频调用对 (caller->callee: count):
+      - IG02 -> Tomcat02 : 79993
+      - IG01 -> Tomcat02 : 79954
+      - IG01 -> Tomcat01 : 79828
+      - IG02 -> Tomcat04 : 79630
+      - IG02 -> Tomcat01 : 79438
+    [CausalGraphAgent] 步骤1补: 缺失依赖推断已禁用 (使用真实 trace 边: 32 条)
+    [LogTopologyAgent] ========== 开始日志拓扑挖掘 ==========
+    [LogTopologyAgent] 故障窗口: [1614839400, 1614841200]
+    [LogTopologyAgent] log 行数=59509, 涉及 cmdb_id=['Tomcat01', 'Tomcat02', 'Tomcat03', 'Tomcat04', 'apache01', 'apache02']
+    [LogTopologyAgent] --- 策略A: DBCP2 datasource 启动日志 ---
+    [LogTopologyAgent]   命中 0 条 (cmdb_id, datasource_name) 配对
+    [LogTopologyAgent] --- 策略B: Jedis redis 连接池 ---
+    [LogTopologyAgent]   命中 0 条 (cmdb_id) 配对
+    [LogTopologyAgent] --- 策略C: JDBC URL ---
+    [LogTopologyAgent]   命中 0 条 (cmdb_id, host) 配对
+    [LogTopologyAgent] --- 策略D: 连接错误日志 (运行期) ---
+    [LogTopologyAgent]   命中 0 条 (cmdb_id) 配对
+    [LogTopologyAgent] --- 策略E: access_log 调用方识别 ---
+    [LogTopologyAgent]   命中 29746 条 (caller, callee) 配对
+    [LogTopologyAgent]     IG02 -> Tomcat04  (count=3862)
+    [LogTopologyAgent]     IG01 -> Tomcat01  (count=3825)
+    [LogTopologyAgent]     IG02 -> Tomcat03  (count=3746)
+    [LogTopologyAgent]     IG02 -> Tomcat02  (count=3728)
+    [LogTopologyAgent]     IG01 -> Tomcat03  (count=3707)
+    [LogTopologyAgent]     IG02 -> Tomcat01  (count=3703)
+    [LogTopologyAgent]     IG01 -> Tomcat04  (count=3600)
+    [LogTopologyAgent]     IG01 -> Tomcat02  (count=3575)
+    [LogTopologyAgent] ========== 启发式映射 datasource_name -> cmdb_id ==========
+    [LogTopologyAgent]   (无映射, 因为 datasource 名字里不含 MYSQL/REDIS 等关键字)
+    [LogTopologyAgent]   access_log Top 边 (按出现频次):
+    [LogTopologyAgent]     IG02 -> Tomcat04  (count=3862)
+    [LogTopologyAgent]     IG01 -> Tomcat01  (count=3825)
+    [LogTopologyAgent]     IG02 -> Tomcat03  (count=3746)
+    [LogTopologyAgent]     IG02 -> Tomcat02  (count=3728)
+    [LogTopologyAgent]     IG01 -> Tomcat03  (count=3707)
+    [LogTopologyAgent]     IG02 -> Tomcat01  (count=3703)
+    [LogTopologyAgent]     IG01 -> Tomcat04  (count=3600)
+    [LogTopologyAgent]     IG01 -> Tomcat02  (count=3575)
+    [LogTopologyAgent] 挖掘结果汇总: 8 条 service->db/redis 边
+    [LogTopologyAgent]   IG01 -> Tomcat01  (call_count=3825)
+    [LogTopologyAgent]   IG01 -> Tomcat02  (call_count=3575)
+    [LogTopologyAgent]   IG01 -> Tomcat03  (call_count=3707)
+    [LogTopologyAgent]   IG01 -> Tomcat04  (call_count=3600)
+    [LogTopologyAgent]   IG02 -> Tomcat01  (call_count=3703)
+    [LogTopologyAgent]   IG02 -> Tomcat02  (call_count=3728)
+    [LogTopologyAgent]   IG02 -> Tomcat03  (call_count=3746)
+    [LogTopologyAgent]   IG02 -> Tomcat04  (call_count=3862)
+    [LogTopologyAgent] ========== 与主调用图对比 ==========
+    [LogTopologyAgent] 主调用图边数: 32
+    [LogTopologyAgent] log 拓扑边数: 8
+    [LogTopologyAgent] 主图节点: ['IG01', 'IG02', 'MG01', 'MG02', 'Tomcat01', 'Tomcat02', 'Tomcat03', 'Tomcat04', 'dockerA1', 'dockerA2', 'dockerB1', 'dockerB2']
+    [LogTopologyAgent] log 拓扑节点: ['IG01', 'IG02', 'Tomcat01', 'Tomcat02', 'Tomcat03', 'Tomcat04']
+    [LogTopologyAgent] 重叠节点: ['IG01', 'IG02', 'Tomcat01', 'Tomcat02', 'Tomcat03', 'Tomcat04']
+    [LogTopologyAgent] 主图 & log 拓扑 都有的边: 8
+    [LogTopologyAgent] 仅 log 拓扑有的边: 0
+    [LogTopologyAgent] [OK] 有重叠节点 (6 个), 决策: 合并到主图
+    [LogTopologyAgent] ========== 完成 ==========
+    [CausalGraphAgent] 步骤1.5: LogTopologyAgent 合并完成
+    [CausalGraphAgent]   log 拓扑状态: MERGED
+    [CausalGraphAgent]   log 拓扑边数: 8
+    [CausalGraphAgent]   合并后调用对: 32 (新增 0, 共同 8)
+    [CausalGraphAgent] 步骤2: 选中节点数=16
+    [CausalGraphAgent] === 因果图构建结果 ===
+    [CausalGraphAgent] 节点=16 边=32 expand_mode=direct
+    [CausalGraphAgent] 因果图已保存到文件夹: D:\GitHubDownload\OpenRCA\CausalRCA_CodeX\output\2026-06-04_11-24-24\causal_graphs\Bank\row_0000
+    [CausalGraphAgent] --- 图1: 调用图骨架 (caller->callee, 权重=call_count) ---
+      数据源 : 全天 trace  (1 个文件, 共 12152300 个 span)
+      时间窗 : 全天 24h（包含故障前后）
+      故障窗 : [1614839400, 1614841200] (epoch秒) —— 仅用于图2相关性计算
+      调用对 : 共 32 个 caller->callee 关系
+      # 1 IG02(middleware) --(calls=79993)--> Tomcat02(service)
+      # 2 IG01(middleware) --(calls=79954)--> Tomcat02(service)
+      # 3 IG01(middleware) --(calls=79828)--> Tomcat01(service)
+      # 4 IG02(middleware) --(calls=79630)--> Tomcat04(service)
+      # 5 IG02(middleware) --(calls=79438)--> Tomcat01(service)
+      # 6 IG01(middleware) --(calls=79310)--> Tomcat03(service)
+      # 7 IG02(middleware) --(calls=79285)--> Tomcat03(service)
+      # 8 IG01(middleware) --(calls=79046)--> Tomcat04(service)
+      # 9 Tomcat02(service) --(calls=78921)--> MG02(middleware)
+      #10 Tomcat01(service) --(calls=78548)--> MG02(middleware)
+      #11 Tomcat02(service) --(calls=78418)--> MG01(middleware)
+      #12 Tomcat03(service) --(calls=78357)--> MG02(middleware)
+      #13 Tomcat01(service) --(calls=78190)--> MG01(middleware)
+      #14 Tomcat04(service) --(calls=78053)--> MG01(middleware)
+      #15 Tomcat04(service) --(calls=78023)--> MG02(middleware)
+      #16 Tomcat03(service) --(calls=77621)--> MG01(middleware)
+      #17 MG01(middleware) --(calls=71725)--> dockerB2(service)
+      #18 MG02(middleware) --(calls=71712)--> dockerB1(service)
+      #19 MG02(middleware) --(calls=71426)--> dockerB2(service)
+      #20 MG01(middleware) --(calls=70920)--> dockerB1(service)
+      #21 dockerB2(service) --(calls=61687)--> MG01(middleware)
+      #22 dockerB2(service) --(calls=61660)--> MG02(middleware)
+      #23 dockerB1(service) --(calls=61254)--> MG02(middleware)
+      #24 dockerB1(service) --(calls=60980)--> MG01(middleware)
+      #25 MG02(middleware) --(calls=57679)--> dockerA1(service)
+      #26 MG02(middleware) --(calls=57458)--> dockerA2(service)
+      #27 MG01(middleware) --(calls=57184)--> dockerA1(service)
+      #28 MG01(middleware) --(calls=56889)--> dockerA2(service)
+      #29 dockerA2(service) --(calls=13328)--> MG02(middleware)
+      #30 dockerA1(service) --(calls=13289)--> MG01(middleware)
+      #31 dockerA1(service) --(calls=13289)--> MG02(middleware)
+      #32 dockerA2(service) --(calls=13219)--> MG01(middleware)
+    [CausalGraphAgent] --- 图2: 因果图 (callee->caller, 故障传播方向, 权重=Scheme-F) ---
+      数据源 : 节点←图1全天trace骨架, 边权重←Scheme-F(故障窗口span相关性+全天调用先验)
+      时间窗 : 故障窗口 [1614839400, 1614841200] (epoch秒)
+               (窗口 trace 文件数=1, span行数=589396)
+      # 1 MG02(middleware) --(w=0.5921, calls=78921, source=trace)--> Tomcat02(service)
+      # 2 MG02(middleware) --(w=0.4741, calls=78357, source=trace)--> Tomcat03(service)
+      # 3 MG01(middleware) --(w=0.4731, calls=77621, source=trace)--> Tomcat03(service)
+      # 4 MG01(middleware) --(w=0.3499, calls=78418, source=trace)--> Tomcat02(service)
+      # 5 MG01(middleware) --(w=0.2982, calls=78190, source=trace)--> Tomcat01(service)
+      # 6 MG02(middleware) --(w=0.2967, calls=78023, source=trace)--> Tomcat04(service)
+      # 7 MG02(middleware) --(w=0.2958, calls=78548, source=trace)--> Tomcat01(service)
+      # 8 Tomcat02(service) --(w=0.2021, calls=79993, source=trace+log)--> IG02(middleware)
+      # 9 Tomcat02(service) --(w=0.2021, calls=79954, source=trace+log)--> IG01(middleware)
+      #10 Tomcat03(service) --(w=0.2021, calls=79310, source=trace+log)--> IG01(middleware)
+      #11 Tomcat03(service) --(w=0.2021, calls=79285, source=trace+log)--> IG02(middleware)
+      #12 MG01(middleware) --(w=0.1807, calls=78053, source=trace)--> Tomcat04(service)
+      #13 Tomcat01(service) --(w=0.1654, calls=79828, source=trace+log)--> IG01(middleware)
+      #14 Tomcat04(service) --(w=0.1654, calls=79630, source=trace+log)--> IG02(middleware)
+      #15 Tomcat01(service) --(w=0.1654, calls=79438, source=trace+log)--> IG02(middleware)
+      #16 Tomcat04(service) --(w=0.1654, calls=79046, source=trace+log)--> IG01(middleware)
+      #17 dockerB2(service) --(w=0.1575, calls=71725, source=trace)--> MG01(middleware)
+      #18 dockerB1(service) --(w=0.1575, calls=71712, source=trace)--> MG02(middleware)
+      #19 dockerB2(service) --(w=0.1575, calls=71426, source=trace)--> MG02(middleware)
+      #20 dockerB1(service) --(w=0.1575, calls=70920, source=trace)--> MG01(middleware)
+      #21 MG01(middleware) --(w=0.1575, calls=61687, source=trace)--> dockerB2(service)
+      #22 MG02(middleware) --(w=0.1575, calls=61660, source=trace)--> dockerB2(service)
+      #23 MG02(middleware) --(w=0.1575, calls=61254, source=trace)--> dockerB1(service)
+      #24 MG01(middleware) --(w=0.1575, calls=60980, source=trace)--> dockerB1(service)
+      #25 dockerA1(service) --(w=0.1575, calls=57679, source=trace)--> MG02(middleware)
+      #26 dockerA2(service) --(w=0.1575, calls=57458, source=trace)--> MG02(middleware)
+      #27 dockerA1(service) --(w=0.1575, calls=57184, source=trace)--> MG01(middleware)
+      #28 dockerA2(service) --(w=0.1575, calls=56889, source=trace)--> MG01(middleware)
+      #29 MG02(middleware) --(w=0.1575, calls=13328, source=trace)--> dockerA2(service)
+      #30 MG01(middleware) --(w=0.1575, calls=13289, source=trace)--> dockerA1(service)
+      #31 MG02(middleware) --(w=0.1575, calls=13289, source=trace)--> dockerA1(service)
+      #32 MG01(middleware) --(w=0.1575, calls=13219, source=trace)--> dockerA2(service)
+  自评: [###############-----] 0.77 OK
+  全局: [###############-----] 0.80 OK
+
+  [ 4] -> InterventionAgent              (干预排名未完成)
+        步骤目的: 干预评分(ES瓶颈+RCS多因子)
+        读取数据: causal_graph+fault_id_layer
+    [InterventionAgent] graph nodes=16 edges=32
+    [InterventionAgent] refined_candidates=12
+    [InterventionAgent] RCS = 0.40*Evidence + 0.25*Source + 0.20*Time + 0.15*ES
+    [InterventionAgent] candidates=12 top1_confidence=0.5057
+      #1 MG02: RCS=0.6846 ES=0.3200 Evidence=0.5525
+      #2 Mysql02: RCS=0.6725 ES=0.3723 Evidence=0.7292
+      #3 MG01: RCS=0.6571 ES=0.2659 Evidence=0.5200
+      #4 Redis01: RCS=0.6192 ES=0.4362 Evidence=0.5720
+      #5 Redis02: RCS=0.6192 ES=0.4362 Evidence=0.5720
+  自评: [##########----------] 0.51 OK
+  全局: [##########----------] 0.51 OK
+
+  [ 5] -> CounterfactualAgent            (反事实验证未完成)
+        步骤目的: 反事实验证CES+原因识别
+        读取数据: intervention_layer.topk+raw_logs
+    [CounterfactualAgent] topk_candidates=8
+    [CounterfactualAgent] FinalScore = 0.55*RCS + 0.25*CFS + 0.20*Reason
+    [CounterfactualAgent] root component: MG02
+    [CounterfactualAgent] root time     : 2021-03-04 14:41:00
+    [CounterfactualAgent] root reason   : high memory usage
+    [CounterfactualAgent] score: Final=0.6455 RCS=0.6846 CFS=0.5277 Reason=0.6850
+      CF#1 MG02: Final=0.6455 RCS=0.6846 CFS=0.5277 Reason=high memory usage(0.6850)
+      CF#2 MG01: Final=0.6071 RCS=0.6571 CFS=0.4347 Reason=high memory usage(0.6850)
+      CF#3 Mysql02: Final=0.6050 RCS=0.6725 CFS=0.3723 Reason=high memory usage(0.7100)
+  自评: [##############------] 0.75 OK
+  全局: [################----] 0.85 OK
+
+  [OK] 任务完成（final_root_cause已设置）
+    [Evaluation] [X] WRONG
+    [Evaluation] 失败类型: TOOL-ERROR | 首个失败阶段: Unknown
+
+----------------------------------------------------------------------
+  最终诊断结果
+----------------------------------------------------------------------
+  根因组件: MG02
+  故障时间: 2021-03-04 14:41:00
+  故障原因: high memory usage
+  最终得分: 0.6455
+  说明: MG02 is selected with FinalScore=0.645, RootCauseScore=0.685, CounterfactualScore=0.528, and ReasonScore=0.685.
+
+  总耗时: 166.73s | 迭代次数: 6
+
+  ============================================================
+  Case 0 Result
+  ============================================================
+  Prediction : {
+    "1": {
+        "root cause occurrence datetime": "2021-03-04 14:41:00"
+    }
+}
+  Scoring    : The only root cause occurrence time is within 1 minutes (i.e., <=1min) of 2021-03-04 14:57:00
+
+  Passed     : []
+  Failed     : ['2021-03-04 14:57:00']
+  Score      : 0.0
+  Time       : 168.1s
+  ============================================================
+
+================================================================================
+  FINAL RESULTS
+================================================================================
+
++----------+----------+----------+----------+----------+
+| Task     | Score    | Count    | Avg      | Time(s)  |
++----------+----------+----------+----------+----------+
+| task_1   | 0.00     | 1        | 0.0    % | 168      |
++----------+----------+----------+----------+----------+
+| TOTAL    | 0.00     | 1        | 0.0    % | 168      |
++----------+----------+----------+----------+----------+
+
+  Cumulative Score: 0.0/1 (0.0%)
+  Total Time: 168s (168s/case)
+
+[Done] All output saved to: D:\GitHubDownload\OpenRCA\CausalRCA_CodeX\output\2026-06-04_11-24-24

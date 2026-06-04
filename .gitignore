@@ -5,6 +5,7 @@ test/
 api_config.yaml
 CausalRCA_CodeX/output/*
 !CausalRCA_CodeX/output/2026-06-04_11-24-24/
+!CausalRCA_CodeX/output/2026-06-04_11-24-24/**
 
 # Mac
 .DS_Store
@@ -68,6 +69,7 @@ cover/
 
 # Django stuff:
 *.log
+!CausalRCA_CodeX/output/2026-06-04_11-24-24/**/*.log
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
