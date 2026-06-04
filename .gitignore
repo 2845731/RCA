@@ -3,6 +3,8 @@
 dataset/
 test/
 api_config.yaml
+CausalRCA_CodeX/output/*
+!CausalRCA_CodeX/output/2026-06-04_11-24-24/
 
 # Mac
 .DS_Store
