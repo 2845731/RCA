@@ -1,0 +1,450 @@
+{
+  "figure_name": "图2-因果图(反转+Scheme-F)",
+  "direction_meaning": "source->target 表示故障从source传播到target",
+  "nodes": [
+    {
+      "component": "dockerA2",
+      "component_type": "service",
+      "anomalous": false,
+      "severity": 0.0
+    },
+    {
+      "component": "Tomcat04",
+      "component_type": "service",
+      "anomalous": true,
+      "severity": 0.683333
+    },
+    {
+      "component": "Mysql02",
+      "component_type": "db",
+      "anomalous": true,
+      "severity": 0.683333
+    },
+    {
+      "component": "IG01",
+      "component_type": "middleware",
+      "anomalous": true,
+      "severity": 0.633333
+    },
+    {
+      "component": "dockerB2",
+      "component_type": "service",
+      "anomalous": false,
+      "severity": 0.0
+    },
+    {
+      "component": "IG02",
+      "component_type": "middleware",
+      "anomalous": true,
+      "severity": 0.854167
+    },
+    {
+      "component": "Redis01",
+      "component_type": "redis",
+      "anomalous": true,
+      "severity": 0.683333
+    },
+    {
+      "component": "dockerA1",
+      "component_type": "service",
+      "anomalous": false,
+      "severity": 0.0
+    },
+    {
+      "component": "Redis02",
+      "component_type": "redis",
+      "anomalous": true,
+      "severity": 1.0
+    },
+    {
+      "component": "MG01",
+      "component_type": "middleware",
+      "anomalous": true,
+      "severity": 0.683333
+    },
+    {
+      "component": "dockerB1",
+      "component_type": "service",
+      "anomalous": false,
+      "severity": 0.0
+    },
+    {
+      "component": "Tomcat03",
+      "component_type": "service",
+      "anomalous": true,
+      "severity": 0.733333
+    },
+    {
+      "component": "Tomcat02",
+      "component_type": "service",
+      "anomalous": true,
+      "severity": 0.733333
+    },
+    {
+      "component": "Tomcat01",
+      "component_type": "service",
+      "anomalous": true,
+      "severity": 0.733333
+    },
+    {
+      "component": "MG02",
+      "component_type": "middleware",
+      "anomalous": true,
+      "severity": 0.733333
+    }
+  ],
+  "edges": [
+    {
+      "source": "Tomcat02",
+      "target": "IG02",
+      "weight": 0.278675,
+      "call_count": 79993,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": true
+      }
+    },
+    {
+      "source": "Tomcat02",
+      "target": "IG01",
+      "weight": 0.189553,
+      "call_count": 79954,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": true
+      }
+    },
+    {
+      "source": "Tomcat01",
+      "target": "IG01",
+      "weight": 0.197341,
+      "call_count": 79828,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": true
+      }
+    },
+    {
+      "source": "Tomcat04",
+      "target": "IG02",
+      "weight": 0.297059,
+      "call_count": 79630,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": true
+      }
+    },
+    {
+      "source": "Tomcat01",
+      "target": "IG02",
+      "weight": 0.279307,
+      "call_count": 79438,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": true
+      }
+    },
+    {
+      "source": "Tomcat03",
+      "target": "IG01",
+      "weight": 0.234039,
+      "call_count": 79310,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": true
+      }
+    },
+    {
+      "source": "Tomcat03",
+      "target": "IG02",
+      "weight": 0.219457,
+      "call_count": 79285,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": true
+      }
+    },
+    {
+      "source": "Tomcat04",
+      "target": "IG01",
+      "weight": 0.42635,
+      "call_count": 79046,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": true
+      }
+    },
+    {
+      "source": "MG02",
+      "target": "Tomcat02",
+      "weight": 0.292774,
+      "call_count": 78921,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG02",
+      "target": "Tomcat01",
+      "weight": 0.303584,
+      "call_count": 78548,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG01",
+      "target": "Tomcat02",
+      "weight": 0.280461,
+      "call_count": 78418,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG02",
+      "target": "Tomcat03",
+      "weight": 0.299931,
+      "call_count": 78357,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG01",
+      "target": "Tomcat01",
+      "weight": 0.218345,
+      "call_count": 78190,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG01",
+      "target": "Tomcat04",
+      "weight": 0.176318,
+      "call_count": 78053,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG02",
+      "target": "Tomcat04",
+      "weight": 0.365813,
+      "call_count": 78023,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG01",
+      "target": "Tomcat03",
+      "weight": 0.20125,
+      "call_count": 77621,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "dockerB2",
+      "target": "MG01",
+      "weight": 0.157506,
+      "call_count": 71725,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "dockerB1",
+      "target": "MG02",
+      "weight": 0.157506,
+      "call_count": 71712,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "dockerB2",
+      "target": "MG02",
+      "weight": 0.157506,
+      "call_count": 71426,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "dockerB1",
+      "target": "MG01",
+      "weight": 0.157506,
+      "call_count": 70920,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG01",
+      "target": "dockerB2",
+      "weight": 0.157506,
+      "call_count": 61687,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG02",
+      "target": "dockerB2",
+      "weight": 0.157506,
+      "call_count": 61660,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG02",
+      "target": "dockerB1",
+      "weight": 0.157506,
+      "call_count": 61254,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG01",
+      "target": "dockerB1",
+      "weight": 0.157506,
+      "call_count": 60980,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "dockerA1",
+      "target": "MG02",
+      "weight": 0.157506,
+      "call_count": 57679,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "dockerA2",
+      "target": "MG02",
+      "weight": 0.157506,
+      "call_count": 57458,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "dockerA1",
+      "target": "MG01",
+      "weight": 0.157506,
+      "call_count": 57184,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "dockerA2",
+      "target": "MG01",
+      "weight": 0.157506,
+      "call_count": 56889,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG02",
+      "target": "dockerA2",
+      "weight": 0.157506,
+      "call_count": 13328,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG01",
+      "target": "dockerA1",
+      "weight": 0.157506,
+      "call_count": 13289,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG02",
+      "target": "dockerA1",
+      "weight": 0.157506,
+      "call_count": 13289,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG01",
+      "target": "dockerA2",
+      "weight": 0.157506,
+      "call_count": 13219,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    }
+  ]
+}

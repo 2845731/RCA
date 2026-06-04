@@ -1,0 +1,165 @@
+{
+  "figure_name": "图1-调用图骨架(原始trace, caller->callee)",
+  "edges": [
+    {
+      "caller": "Tomcat01",
+      "callee": "MG02",
+      "call_count": 155265
+    },
+    {
+      "caller": "Tomcat03",
+      "callee": "MG02",
+      "call_count": 154690
+    },
+    {
+      "caller": "IG01",
+      "callee": "Tomcat01",
+      "call_count": 154566
+    },
+    {
+      "caller": "Tomcat02",
+      "callee": "MG02",
+      "call_count": 154342
+    },
+    {
+      "caller": "IG01",
+      "callee": "Tomcat03",
+      "call_count": 154270
+    },
+    {
+      "caller": "IG02",
+      "callee": "Tomcat01",
+      "call_count": 154199
+    },
+    {
+      "caller": "Tomcat04",
+      "callee": "MG02",
+      "call_count": 154091
+    },
+    {
+      "caller": "IG01",
+      "callee": "Tomcat02",
+      "call_count": 153825
+    },
+    {
+      "caller": "Tomcat01",
+      "callee": "MG01",
+      "call_count": 153490
+    },
+    {
+      "caller": "IG02",
+      "callee": "Tomcat03",
+      "call_count": 153485
+    },
+    {
+      "caller": "IG01",
+      "callee": "Tomcat04",
+      "call_count": 153411
+    },
+    {
+      "caller": "IG02",
+      "callee": "Tomcat02",
+      "call_count": 153249
+    },
+    {
+      "caller": "Tomcat03",
+      "callee": "MG01",
+      "call_count": 153051
+    },
+    {
+      "caller": "IG02",
+      "callee": "Tomcat04",
+      "call_count": 152741
+    },
+    {
+      "caller": "Tomcat02",
+      "callee": "MG01",
+      "call_count": 152726
+    },
+    {
+      "caller": "Tomcat04",
+      "callee": "MG01",
+      "call_count": 152030
+    },
+    {
+      "caller": "MG02",
+      "callee": "dockerB1",
+      "call_count": 140555
+    },
+    {
+      "caller": "MG02",
+      "callee": "dockerB2",
+      "call_count": 140073
+    },
+    {
+      "caller": "MG01",
+      "callee": "dockerB1",
+      "call_count": 139720
+    },
+    {
+      "caller": "MG01",
+      "callee": "dockerB2",
+      "call_count": 137529
+    },
+    {
+      "caller": "dockerB1",
+      "callee": "MG02",
+      "call_count": 126163
+    },
+    {
+      "caller": "dockerB2",
+      "callee": "MG02",
+      "call_count": 125095
+    },
+    {
+      "caller": "dockerB1",
+      "callee": "MG01",
+      "call_count": 124639
+    },
+    {
+      "caller": "dockerB2",
+      "callee": "MG01",
+      "call_count": 123566
+    },
+    {
+      "caller": "MG02",
+      "callee": "dockerA1",
+      "call_count": 113005
+    },
+    {
+      "caller": "MG01",
+      "callee": "dockerA1",
+      "call_count": 111353
+    },
+    {
+      "caller": "MG02",
+      "callee": "dockerA2",
+      "call_count": 111149
+    },
+    {
+      "caller": "MG01",
+      "callee": "dockerA2",
+      "call_count": 110437
+    },
+    {
+      "caller": "dockerA1",
+      "callee": "MG02",
+      "call_count": 27382
+    },
+    {
+      "caller": "dockerA1",
+      "callee": "MG01",
+      "call_count": 27194
+    },
+    {
+      "caller": "dockerA2",
+      "callee": "MG01",
+      "call_count": 27114
+    },
+    {
+      "caller": "dockerA2",
+      "callee": "MG02",
+      "call_count": 26786
+    }
+  ]
+}
