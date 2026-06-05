@@ -1,0 +1,41 @@
+=== 图2: 因果图 (callee->caller, 故障传播方向) ===
+节点数: 14 边数: 20
+expand_mode: direct
+
+--- 节点 ---
+  dockerA1 (type=service, anomalous=False, severity=0.0000)
+  dockerB1 (type=service, anomalous=False, severity=0.0000)
+  Tomcat01 (type=service, anomalous=True, severity=0.5464)
+  Tomcat02 (type=service, anomalous=True, severity=0.5464)
+  Mysql01 (type=db, anomalous=True, severity=0.8195)
+  Tomcat03 (type=service, anomalous=True, severity=0.5464)
+  Mysql02 (type=db, anomalous=True, severity=0.8195)
+  Redis02 (type=redis, anomalous=True, severity=0.9714)
+  MG02 (type=middleware, anomalous=True, severity=0.7145)
+  Tomcat04 (type=service, anomalous=True, severity=0.3107)
+  IG01 (type=middleware, anomalous=True, severity=0.4641)
+  IG02 (type=middleware, anomalous=True, severity=0.6715)
+  dockerB2 (type=service, anomalous=False, severity=0.0000)
+  dockerA2 (type=service, anomalous=False, severity=0.0000)
+
+--- 边 (源=被调->目标=主调, 故障从源传到目标) ---
+  Tomcat04(service) --(w=0.4264, calls=79046)--> IG01(middleware)
+  MG02(middleware) --(w=0.3658, calls=78023)--> Tomcat04(service)
+  MG02(middleware) --(w=0.3036, calls=78548)--> Tomcat01(service)
+  MG02(middleware) --(w=0.2999, calls=78357)--> Tomcat03(service)
+  Tomcat04(service) --(w=0.2936, calls=79630)--> IG02(middleware)
+  MG02(middleware) --(w=0.2928, calls=78921)--> Tomcat02(service)
+  Tomcat01(service) --(w=0.2793, calls=79438)--> IG02(middleware)
+  Tomcat01(service) --(w=0.2669, calls=79828)--> IG01(middleware)
+  Tomcat02(service) --(w=0.2605, calls=79993)--> IG02(middleware)
+  Tomcat03(service) --(w=0.2340, calls=79310)--> IG01(middleware)
+  Tomcat03(service) --(w=0.2195, calls=79285)--> IG02(middleware)
+  Tomcat02(service) --(w=0.1896, calls=79954)--> IG01(middleware)
+  dockerB1(service) --(w=0.1575, calls=71712)--> MG02(middleware)
+  dockerB2(service) --(w=0.1575, calls=71426)--> MG02(middleware)
+  MG02(middleware) --(w=0.1575, calls=61660)--> dockerB2(service)
+  MG02(middleware) --(w=0.1575, calls=61254)--> dockerB1(service)
+  dockerA1(service) --(w=0.1575, calls=57679)--> MG02(middleware)
+  dockerA2(service) --(w=0.1575, calls=57458)--> MG02(middleware)
+  MG02(middleware) --(w=0.1575, calls=13328)--> dockerA2(service)
+  MG02(middleware) --(w=0.1575, calls=13289)--> dockerA1(service)

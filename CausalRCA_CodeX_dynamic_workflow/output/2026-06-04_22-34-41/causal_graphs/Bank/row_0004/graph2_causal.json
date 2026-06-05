@@ -1,0 +1,444 @@
+{
+  "figure_name": "图2-因果图(反转+Scheme-F)",
+  "direction_meaning": "source->target 表示故障从source传播到target",
+  "nodes": [
+    {
+      "component": "dockerA1",
+      "component_type": "service",
+      "anomalous": false,
+      "severity": 0.0
+    },
+    {
+      "component": "dockerB1",
+      "component_type": "service",
+      "anomalous": false,
+      "severity": 0.0
+    },
+    {
+      "component": "Tomcat01",
+      "component_type": "service",
+      "anomalous": true,
+      "severity": 0.681206
+    },
+    {
+      "component": "Tomcat02",
+      "component_type": "service",
+      "anomalous": true,
+      "severity": 0.42887
+    },
+    {
+      "component": "Mysql01",
+      "component_type": "db",
+      "anomalous": true,
+      "severity": 0.814286
+    },
+    {
+      "component": "Tomcat03",
+      "component_type": "service",
+      "anomalous": true,
+      "severity": 0.319368
+    },
+    {
+      "component": "Mysql02",
+      "component_type": "db",
+      "anomalous": true,
+      "severity": 0.814286
+    },
+    {
+      "component": "MG02",
+      "component_type": "middleware",
+      "anomalous": true,
+      "severity": 0.681206
+    },
+    {
+      "component": "dockerA2",
+      "component_type": "service",
+      "anomalous": false,
+      "severity": 0.0
+    },
+    {
+      "component": "Tomcat04",
+      "component_type": "service",
+      "anomalous": true,
+      "severity": 0.971429
+    },
+    {
+      "component": "IG02",
+      "component_type": "middleware",
+      "anomalous": true,
+      "severity": 0.458472
+    },
+    {
+      "component": "dockerB2",
+      "component_type": "service",
+      "anomalous": false,
+      "severity": 0.0
+    },
+    {
+      "component": "IG01",
+      "component_type": "middleware",
+      "anomalous": true,
+      "severity": 0.458472
+    },
+    {
+      "component": "MG01",
+      "component_type": "middleware",
+      "anomalous": true,
+      "severity": 0.626009
+    }
+  ],
+  "edges": [
+    {
+      "source": "Tomcat01",
+      "target": "IG01",
+      "weight": 0.173779,
+      "call_count": 165321,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": true
+      }
+    },
+    {
+      "source": "MG01",
+      "target": "Tomcat01",
+      "weight": 0.18059,
+      "call_count": 165109,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG02",
+      "target": "Tomcat01",
+      "weight": 0.173665,
+      "call_count": 164988,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "Tomcat01",
+      "target": "IG02",
+      "weight": 0.165382,
+      "call_count": 164769,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": true
+      }
+    },
+    {
+      "source": "MG02",
+      "target": "Tomcat04",
+      "weight": 0.204565,
+      "call_count": 164751,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "Tomcat02",
+      "target": "IG02",
+      "weight": 0.165382,
+      "call_count": 164746,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": true
+      }
+    },
+    {
+      "source": "Tomcat04",
+      "target": "IG02",
+      "weight": 0.165382,
+      "call_count": 164727,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": true
+      }
+    },
+    {
+      "source": "MG02",
+      "target": "Tomcat02",
+      "weight": 0.216141,
+      "call_count": 164537,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "Tomcat04",
+      "target": "IG01",
+      "weight": 0.206451,
+      "call_count": 164458,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": true
+      }
+    },
+    {
+      "source": "MG01",
+      "target": "Tomcat04",
+      "weight": 0.205996,
+      "call_count": 164413,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG01",
+      "target": "Tomcat02",
+      "weight": 0.258369,
+      "call_count": 164161,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG02",
+      "target": "Tomcat03",
+      "weight": 0.201747,
+      "call_count": 164012,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "Tomcat02",
+      "target": "IG01",
+      "weight": 0.295016,
+      "call_count": 163959,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": true
+      }
+    },
+    {
+      "source": "Tomcat03",
+      "target": "IG02",
+      "weight": 0.165382,
+      "call_count": 163850,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": true
+      }
+    },
+    {
+      "source": "Tomcat03",
+      "target": "IG01",
+      "weight": 0.182256,
+      "call_count": 163081,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": true
+      }
+    },
+    {
+      "source": "MG01",
+      "target": "Tomcat03",
+      "weight": 0.211589,
+      "call_count": 162914,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "dockerB2",
+      "target": "MG02",
+      "weight": 0.157506,
+      "call_count": 148720,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "dockerB1",
+      "target": "MG02",
+      "weight": 0.157506,
+      "call_count": 148627,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "dockerB2",
+      "target": "MG01",
+      "weight": 0.157506,
+      "call_count": 148616,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "dockerB1",
+      "target": "MG01",
+      "weight": 0.157506,
+      "call_count": 148394,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG02",
+      "target": "dockerB1",
+      "weight": 0.157506,
+      "call_count": 130930,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG02",
+      "target": "dockerB2",
+      "weight": 0.157506,
+      "call_count": 130494,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG01",
+      "target": "dockerB2",
+      "weight": 0.157506,
+      "call_count": 130182,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG01",
+      "target": "dockerB1",
+      "weight": 0.157506,
+      "call_count": 129118,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "dockerA2",
+      "target": "MG02",
+      "weight": 0.157506,
+      "call_count": 119348,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "dockerA2",
+      "target": "MG01",
+      "weight": 0.157506,
+      "call_count": 119308,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "dockerA1",
+      "target": "MG02",
+      "weight": 0.157506,
+      "call_count": 119063,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "dockerA1",
+      "target": "MG01",
+      "weight": 0.157506,
+      "call_count": 118878,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG02",
+      "target": "dockerA2",
+      "weight": 0.157506,
+      "call_count": 28968,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG02",
+      "target": "dockerA1",
+      "weight": 0.157506,
+      "call_count": 28952,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG01",
+      "target": "dockerA1",
+      "weight": 0.157506,
+      "call_count": 28873,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG01",
+      "target": "dockerA2",
+      "weight": 0.157506,
+      "call_count": 28668,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    }
+  ]
+}

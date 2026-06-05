@@ -1,0 +1,280 @@
+{
+  "figure_name": "图2-因果图(反转+Scheme-F)",
+  "direction_meaning": "source->target 表示故障从source传播到target",
+  "nodes": [
+    {
+      "component": "apache01",
+      "component_type": "service",
+      "anomalous": true,
+      "severity": 0.85042
+    },
+    {
+      "component": "Tomcat01",
+      "component_type": "service",
+      "anomalous": true,
+      "severity": 0.508591
+    },
+    {
+      "component": "Tomcat02",
+      "component_type": "service",
+      "anomalous": true,
+      "severity": 0.85042
+    },
+    {
+      "component": "Tomcat03",
+      "component_type": "service",
+      "anomalous": true,
+      "severity": 0.508591
+    },
+    {
+      "component": "Mysql02",
+      "component_type": "db",
+      "anomalous": true,
+      "severity": 0.942857
+    },
+    {
+      "component": "MG02",
+      "component_type": "middleware",
+      "anomalous": true,
+      "severity": 0.651068
+    },
+    {
+      "component": "IG02",
+      "component_type": "middleware",
+      "anomalous": true,
+      "severity": 0.942857
+    },
+    {
+      "component": "Tomcat04",
+      "component_type": "service",
+      "anomalous": true,
+      "severity": 0.508591
+    },
+    {
+      "component": "IG01",
+      "component_type": "middleware",
+      "anomalous": true,
+      "severity": 0.451828
+    },
+    {
+      "component": "MG01",
+      "component_type": "middleware",
+      "anomalous": true,
+      "severity": 0.651068
+    }
+  ],
+  "edges": [
+    {
+      "source": "Tomcat02",
+      "target": "IG02",
+      "weight": 0.251912,
+      "call_count": 79993,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": true
+      }
+    },
+    {
+      "source": "Tomcat02",
+      "target": "IG01",
+      "weight": 0.202128,
+      "call_count": 79954,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": true
+      }
+    },
+    {
+      "source": "Tomcat01",
+      "target": "IG01",
+      "weight": 0.165382,
+      "call_count": 79828,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": true
+      }
+    },
+    {
+      "source": "Tomcat04",
+      "target": "IG02",
+      "weight": 0.255882,
+      "call_count": 79630,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": true
+      }
+    },
+    {
+      "source": "Tomcat01",
+      "target": "IG02",
+      "weight": 0.248998,
+      "call_count": 79438,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": true
+      }
+    },
+    {
+      "source": "Tomcat03",
+      "target": "IG01",
+      "weight": 0.202128,
+      "call_count": 79310,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": true
+      }
+    },
+    {
+      "source": "Tomcat03",
+      "target": "IG02",
+      "weight": 0.285326,
+      "call_count": 79285,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": true
+      }
+    },
+    {
+      "source": "Tomcat04",
+      "target": "IG01",
+      "weight": 0.165382,
+      "call_count": 79046,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": true
+      }
+    },
+    {
+      "source": "MG02",
+      "target": "Tomcat02",
+      "weight": 0.382044,
+      "call_count": 78921,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG02",
+      "target": "Tomcat01",
+      "weight": 0.257577,
+      "call_count": 78548,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG01",
+      "target": "Tomcat02",
+      "weight": 0.378274,
+      "call_count": 78418,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG02",
+      "target": "Tomcat03",
+      "weight": 0.361108,
+      "call_count": 78357,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG01",
+      "target": "Tomcat01",
+      "weight": 0.258627,
+      "call_count": 78190,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG01",
+      "target": "Tomcat04",
+      "weight": 0.290858,
+      "call_count": 78053,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG02",
+      "target": "Tomcat04",
+      "weight": 0.311816,
+      "call_count": 78023,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "MG01",
+      "target": "Tomcat03",
+      "weight": 0.462195,
+      "call_count": 77621,
+      "scores": {
+        "observed_trace": true,
+        "from_log_topology": false,
+        "confirmed_by_log": false
+      }
+    },
+    {
+      "source": "apache01",
+      "target": "Tomcat02",
+      "weight": 0.709167,
+      "call_count": 0,
+      "scores": {
+        "metric_causal": true
+      }
+    },
+    {
+      "source": "apache01",
+      "target": "Tomcat03",
+      "weight": 0.709167,
+      "call_count": 0,
+      "scores": {
+        "metric_causal": true
+      }
+    },
+    {
+      "source": "Mysql02",
+      "target": "Tomcat02",
+      "weight": 0.709167,
+      "call_count": 0,
+      "scores": {
+        "metric_causal": true
+      }
+    },
+    {
+      "source": "Mysql02",
+      "target": "Tomcat03",
+      "weight": 0.709167,
+      "call_count": 0,
+      "scores": {
+        "metric_causal": true
+      }
+    }
+  ]
+}
