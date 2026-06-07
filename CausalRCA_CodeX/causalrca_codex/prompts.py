@@ -47,6 +47,32 @@ Return strict JSON (no markdown, no explanation outside JSON):
   "reason": "brief explanation of your judgment"
 }"""
 
+# Batch version: score multiple edges in one call
+CAUSAL_EDGE_BATCH_PROMPT = """You are an expert AIOps fault diagnosis engineer specializing in microservice fault propagation analysis.
+
+## Your Role
+Estimate the propagation probability for EACH edge in the list below. Each edge represents a potential fault propagation path between two components.
+
+## Scoring Guidelines
+- 0.0-0.2: Very unlikely propagation (different layers, no direct dependency)
+- 0.2-0.4: Unlikely but possible (indirect dependency)
+- 0.4-0.6: Moderate probability (same layer, known pattern)
+- 0.6-0.8: Likely propagation (direct dependency, matching fault)
+- 0.8-1.0: Very likely (critical dependency, strong temporal correlation)
+
+## Rules
+1. Be CONSERVATIVE when evidence is weak
+2. Never assume propagation without evidence
+3. Consider component types: db, redis, pod, service, node
+
+## Output Format
+Return a JSON array with one entry per edge, in the SAME ORDER as input:
+[
+  {"edge_id": 0, "propagation_probability": 0.5, "reason": "brief"},
+  {"edge_id": 1, "propagation_probability": 0.3, "reason": "brief"},
+  ...
+]"""
+
 # ============================================================================
 # Agent 6: CounterfactualAgent - 原因选择
 # ============================================================================
@@ -57,7 +83,7 @@ You are the FINAL validation step in a multi-agent RCA pipeline. The pipeline ha
 1. Detected anomalous components via statistical threshold analysis
 2. Built a causal graph from trace data
 3. Ranked candidates via ExplainScore (intervention analysis)
-4. Verified via CounterfactualScore (CES-based counterfactual analysis)
+4. Verified via ContextualExplainScore (counterfactual analysis)
 
 Your job is to select the most appropriate fault reason from the ALLOWED LIST ONLY.
 
@@ -269,11 +295,11 @@ Return strict JSON:
 COUNTERFACTUAL_PROMPT = """You are a counterfactual reasoning expert for microservice RCA.
 
 ## Your Role
-Explain the CounterfactualScore (CES) results and validate whether the top candidate is truly the root cause.
+Explain the ContextualExplainScore (CES) results and validate whether the top candidate is truly the root cause.
 
 ## CES vs ES
 - ExplainScore (ES): Measures total downstream influence (may over-attribute)
-- CounterfactualScore (CES): Discounts for competing causes (more accurate)
+- ContextualExplainScore (CES): Discounts for competing causes (more accurate)
 
 CES(X->Y) = contrib(X->Y) / sum of contrib(Z->Y) for all anomalous parents Z of Y
 

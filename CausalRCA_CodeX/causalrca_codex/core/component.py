@@ -25,6 +25,18 @@ def infer_component_type(component: str) -> str:
 def normalize_component_id(raw: object, candidates: Iterable[str]) -> str:
     value = str(raw).strip()
     candidate_set = set(str(c).strip() for c in candidates)
+
+    # Innovation: Service-to-pod mapping for microservice architectures.
+    # When metric data uses service-level names (e.g., "adservice") and candidates
+    # use pod-level names (e.g., "adservice-0", "adservice-1"), prefer the pod-level
+    # candidate. This handles architectures where metrics are aggregated at the
+    # service level but ground truth is at the pod level.
+    # Check pod-level candidates FIRST, before exact match.
+    if not re.search(r"-\d+$", value):
+        pod_candidates = [c for c in candidate_set if c.startswith(value + "-") and re.search(r"-\d+$", c)]
+        if pod_candidates:
+            return sorted(pod_candidates)[0]
+
     if value in candidate_set:
         return value
 
@@ -40,6 +52,11 @@ def normalize_component_id(raw: object, candidates: Iterable[str]) -> str:
     for suffix in ("-grpc", ".ts:8088", ".ts:8080", ".source", ".destination"):
         if suffix in service:
             service = service.split(suffix, 1)[0]
+            # Innovation: After suffix stripping, also check for pod-level candidates
+            if not re.search(r"-\d+$", service):
+                pod_candidates = [c for c in candidate_set if c.startswith(service + "-") and re.search(r"-\d+$", c)]
+                if pod_candidates:
+                    return sorted(pod_candidates)[0]
             if service in candidate_set:
                 return service
 
@@ -55,6 +72,18 @@ def normalize_component_id(raw: object, candidates: Iterable[str]) -> str:
     for candidate in candidate_set:
         if candidate and candidate in value:
             return candidate
+
+    # Innovation: Service-to-pod mapping for microservice architectures.
+    # When metric data uses service-level names (e.g., "adservice") and candidates
+    # use pod-level names (e.g., "adservice-0", "adservice-1"), prefer the pod-level
+    # candidate. This handles architectures where metrics are aggregated at the
+    # service level but ground truth is at the pod level.
+    # Only apply when the value is a service-level name (no digits suffix).
+    if not re.search(r"-\d+$", value):
+        pod_candidates = [c for c in candidate_set if c.startswith(value + "-") and re.search(r"-\d+$", c)]
+        if pod_candidates:
+            return sorted(pod_candidates)[0]
+
     return value
 
 

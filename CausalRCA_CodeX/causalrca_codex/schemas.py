@@ -110,10 +110,12 @@ class WeightedCausalGraph:
         self.edges.append(GraphEdge(source=source, target=target, weight=weight, **attrs))
 
     def outgoing(self, node: str) -> List[GraphEdge]:
-        return [edge for edge in self.edges if edge.source == node]
+        return sorted([edge for edge in self.edges if edge.source == node],
+                       key=lambda e: (e.source, e.target))
 
     def incoming(self, node: str) -> List[GraphEdge]:
-        return [edge for edge in self.edges if edge.target == node]
+        return sorted([edge for edge in self.edges if edge.target == node],
+                       key=lambda e: (e.source, e.target))
 
     def has_node(self, node: str) -> bool:
         return node in self.nodes
@@ -145,24 +147,34 @@ class RootCausePrediction:
     reason: str
     scores: Mapping[str, float] = field(default_factory=dict)
     explanation: str = ""
-    causes: Optional[List[Mapping[str, str]]] = None
+    # Multi-failure support: additional predictions for failure_count > 1
+    additional_predictions: List[Dict[str, Any]] = field(default_factory=list)
 
     def to_opencra_json(self, target_fields: Sequence[str]) -> str:
-        causes = list(self.causes or [])
-        if not causes:
-            causes = [{"component": self.component, "time": self.occurrence_time, "reason": self.reason}]
+        entries = []
 
-        items = []
-        for idx, cause in enumerate(causes, start=1):
+        # Primary prediction (always "1")
+        fields = []
+        if "root cause occurrence datetime" in target_fields:
+            fields.append(f'"root cause occurrence datetime": "{self.occurrence_time}"')
+        if "root cause component" in target_fields:
+            fields.append(f'"root cause component": "{self.component}"')
+        if "root cause reason" in target_fields:
+            fields.append(f'"root cause reason": "{self.reason}"')
+        entries.append(f'"1": {{\n        ' + ",\n        ".join(fields) + "\n    }")
+
+        # Additional predictions for multi-failure cases
+        for i, pred in enumerate(self.additional_predictions, start=2):
             fields = []
             if "root cause occurrence datetime" in target_fields:
-                fields.append(f'"root cause occurrence datetime": "{cause.get("time", "")}"')
+                fields.append(f'"root cause occurrence datetime": "{pred.get("occurrence_time", "")}"')
             if "root cause component" in target_fields:
-                fields.append(f'"root cause component": "{cause.get("component", "")}"')
+                fields.append(f'"root cause component": "{pred.get("component", "")}"')
             if "root cause reason" in target_fields:
-                fields.append(f'"root cause reason": "{cause.get("reason", "")}"')
-            items.append(f'    "{idx}": {{\n        ' + ",\n        ".join(fields) + "\n    }")
-        return "{\n" + ",\n".join(items) + "\n}"
+                fields.append(f'"root cause reason": "{pred.get("reason", "")}"')
+            entries.append(f'"{i}": {{\n        ' + ",\n        ".join(fields) + "\n    }")
+
+        return "{\n    " + ",\n    ".join(entries) + "\n}"
 
 
 GroundTruth = Dict[str, Any]

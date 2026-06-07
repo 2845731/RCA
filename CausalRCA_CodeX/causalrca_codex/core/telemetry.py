@@ -32,6 +32,10 @@ NUMERIC_EXCLUDE = {
 }
 
 
+# Module-level cache for loaded CSV frames: keyed by (dataset, day_dir_str)
+_DAY_FRAMES_CACHE: Dict[str, Dict[str, List["TelemetryFrame"]]] = {}
+
+
 def read_csv_safe(path: Path) -> pd.DataFrame:
     return pd.read_csv(path, low_memory=False)
 
@@ -48,6 +52,11 @@ def normalize_time_column(df: pd.DataFrame) -> Optional[str]:
 
 def load_day_frames(config: AgentLoopConfig, query: RCAQuery) -> Dict[str, List[TelemetryFrame]]:
     day_dir = telemetry_path(config, query.dataset) / day_dir_from_epoch(query.start_ts)
+    cache_key = f"{query.dataset}:{day_dir}"
+
+    if cache_key in _DAY_FRAMES_CACHE:
+        return _DAY_FRAMES_CACHE[cache_key]
+
     frames: Dict[str, List[TelemetryFrame]] = {"metric": [], "trace": [], "log": []}
     for kind in frames:
         folder = day_dir / kind
@@ -66,6 +75,8 @@ def load_day_frames(config: AgentLoopConfig, query: RCAQuery) -> Dict[str, List[
                     data=df,
                 )
             )
+
+    _DAY_FRAMES_CACHE[cache_key] = frames
     return frames
 
 

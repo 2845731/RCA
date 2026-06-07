@@ -21,7 +21,6 @@ def make_workspace() -> Dict[str, Any]:
             "candidate_set": [],
             "anomaly_details": {},
             "anomaly_scores": {},
-            "component_profiles": {},
             "component_intensity_series": {},
             "params_used": {},
             "quality": 0.0,
@@ -54,7 +53,7 @@ def make_workspace() -> Dict[str, Any]:
             "warnings": [],
         },
         "counterfactual_layer": {
-            "counterfactual_scores": {},
+            "contextual_explain_scores": {},
             "reason_scores": {},
             "final_root_cause": None,
             "counterfactual_explanation": "",

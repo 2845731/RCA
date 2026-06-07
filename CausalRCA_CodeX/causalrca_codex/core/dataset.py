@@ -77,23 +77,21 @@ def infer_failure_count(instruction: str) -> int:
     lower = str(instruction).lower()
     if "single failure" in lower or "one failure" in lower:
         return 1
-    number_words = {
-        "one": 1,
-        "two": 2,
-        "three": 3,
-        "four": 4,
-        "five": 5,
-    }
+    # Match numeric patterns: "number of failures: 2", "2 failures detected", etc.
     match = re.search(r"number of failures(?: recorded)?(?: within this time range)? is (\d+)", lower)
     if not match:
         match = re.search(r"number of failures:\s*(\d+)", lower)
     if not match:
-        match = re.search(r"\b(\d+)\s+failures?\b", lower)
+        match = re.search(r"(\d+)\s+failures?\s+(?:were?|are|was|is|detected|reported|observed)", lower)
+    if not match:
+        match = re.search(r"(\d+)\s+failures?\b", lower)
     if match:
         return max(1, min(3, int(match.group(1))))
-    for word, count in number_words.items():
-        if re.search(rf"\b{word}\s+failures?\b", lower) or re.search(rf"\bthere (?:were|are) {word}\b", lower):
-            return max(1, min(3, count))
+    # Word-to-number mapping
+    word_to_num = {"two": 2, "three": 3, "four": 4, "five": 5}
+    for word, num in word_to_num.items():
+        if re.search(rf"\b{word}\s+failures?\b", lower):
+            return max(1, min(3, num))
     if "multiple" in lower or "more than one" in lower:
         return 3
     return 1

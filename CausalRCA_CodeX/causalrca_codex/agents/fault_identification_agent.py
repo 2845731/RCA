@@ -39,22 +39,10 @@ class FaultIdentificationAgent(BaseAgent):
         # 读取数据: association_layer.candidate_set(异常候选)
         #          association_layer.anomaly_scores(每组件异常分数)
         # ============================================================
-        query = workspace["task"]["query"]
         candidates: List[str] = list(workspace["association_layer"].get("candidate_set", []))
         scores: Dict[str, float] = dict(workspace["association_layer"].get("anomaly_scores", {}))
-        profiles: Dict[str, Dict[str, Any]] = dict(workspace["association_layer"].get("component_profiles", {}))
         if bool(params.get("restore_reserve")):
             candidates = list(dict.fromkeys(candidates + workspace["fault_id_layer"].get("reserve_candidates", [])))
-
-        evidence_scores: Dict[str, float] = {}
-        for component in candidates:
-            profile = profiles.get(component, {})
-            severity = float(scores.get(component, 0.0))
-            local = float(profile.get("local_root_evidence", severity))
-            evidence_scores[component] = (
-                0.65 * severity
-                + 0.35 * local
-            )
 
         # ----- Step 1: 组件分层（按名称推断 type） -----
         print(f"    [FaultIdAgent] 步骤1: 组件分层（读取 association_layer.candidate_set={len(candidates)} 个组件）")
@@ -73,10 +61,10 @@ class FaultIdentificationAgent(BaseAgent):
         layer_scores: Dict[str, float] = defaultdict(float)
         for component in candidates:
             layer = component_to_layer[component]
-            layer_scores[layer] = max(layer_scores[layer], float(evidence_scores.get(component, scores.get(component, 0.0))))
+            layer_scores[layer] = max(layer_scores[layer], float(scores.get(component, 0.0)))
         for layer, ls in sorted(layer_scores.items(), key=lambda x: -x[1]):
             comp_in_layer = layer_components.get(layer, [])
-            comp_with_max = max(comp_in_layer, key=lambda c: evidence_scores.get(c, scores.get(c, 0.0)), default=None)
+            comp_with_max = max(comp_in_layer, key=lambda c: scores.get(c, 0.0), default=None)
             print(f"      层[{layer}]: max_score={ls:.4f}  代表组件={comp_with_max}")
 
         if not candidates:
@@ -91,33 +79,19 @@ class FaultIdentificationAgent(BaseAgent):
             # ----- Step 3: 主层选择（按 max 分数） -----
             primary_layer = max(layer_scores.items(), key=lambda item: item[1])[0]
             primary_max_score = layer_scores[primary_layer]
-            score_threshold = primary_max_score * 0.58
+            score_threshold = primary_max_score * 0.5
             print(f"    [FaultIdAgent] 步骤3: 主层选择 -> '{primary_layer}' (max_score={primary_max_score:.4f})")
             print(f"    [FaultIdAgent] 步骤3: 其他层保留阈值 = {primary_max_score:.4f} * 0.5 = {score_threshold:.4f}")
             # 主层全保留 + 其他层中分数>=50%主层max的组件
             primary_components = [c for c in candidates if component_to_layer[c] == primary_layer]
             other_components = [c for c in candidates if component_to_layer[c] != primary_layer]
-            kept_primary = [
-                c for c in primary_components
-                if evidence_scores.get(c, 0.0) >= max(score_threshold, primary_max_score * 0.70)
-            ]
-            if not kept_primary and primary_components:
-                kept_primary = [max(primary_components, key=lambda c: evidence_scores.get(c, 0.0))]
-            kept_others = [c for c in other_components if evidence_scores.get(c, 0.0) >= score_threshold]
-            for layer, layer_score in layer_scores.items():
-                if layer == primary_layer or layer_score < primary_max_score * 0.78:
-                    continue
-                layer_best = max(layer_components.get(layer, []), key=lambda c: evidence_scores.get(c, 0.0), default=None)
-                if layer_best and layer_best not in kept_others:
-                    kept_others.append(layer_best)
-            refined = kept_primary + kept_others
-            max_width = max(self.config.top_k * 3, int(getattr(query, "failure_count", 1) or 1) * 4, 8)
-            refined = sorted(dict.fromkeys(refined), key=lambda component: evidence_scores.get(component, scores.get(component, 0.0)), reverse=True)[:max_width]
+            kept_others = [c for c in other_components if scores.get(c, 0.0) >= score_threshold]
+            refined = primary_components + kept_others
             reserve = [c for c in other_components if c not in kept_others]
             print(f"    [FaultIdAgent] 步骤3: 主层[{primary_layer}]保留={len(primary_components)} 其他层保留={len(kept_others)} 保留池={len(reserve)}")
 
-        refined = sorted(refined, key=lambda component: evidence_scores.get(component, scores.get(component, 0.0)), reverse=True)
-        reserve = sorted([c for c in candidates if c not in set(refined)], key=lambda component: evidence_scores.get(component, scores.get(component, 0.0)), reverse=True)
+        refined = sorted(refined, key=lambda component: scores.get(component, 0.0), reverse=True)
+        reserve = sorted(reserve, key=lambda component: scores.get(component, 0.0), reverse=True)
 
         tau_single = float(params.get("tau_single", self.config.tau_single))
         force_multi = bool(params.get("force_multi_component"))
@@ -141,7 +115,6 @@ class FaultIdentificationAgent(BaseAgent):
                 "needs_causal_inference": needs_causal,
                 "tentative_root_cause": tentative,
                 "confidence_single": confidence_single,
-                "candidate_scores": {component: round(score, 6) for component, score in evidence_scores.items()},
             }
         )
 
@@ -152,12 +125,12 @@ class FaultIdentificationAgent(BaseAgent):
         print(f"    [FaultIdAgent] --- 精炼集合 refined({len(refined)}) ---")
         for comp in refined:
             comp_type = component_to_layer.get(comp, infer_component_type(comp))
-            print(f"      精炼: {comp} (层={comp_type}, evidence={evidence_scores.get(comp, 0):.4f})")
+            print(f"      精炼: {comp} (层={comp_type}, score={scores.get(comp, 0):.4f})")
         if reserve:
             print(f"    [FaultIdAgent] --- 保留池 reserve({len(reserve)}) ---")
             for comp in reserve:
                 comp_type = component_to_layer.get(comp, infer_component_type(comp))
-                print(f"      保留: {comp} (层={comp_type}, evidence={evidence_scores.get(comp, 0):.4f})")
+                print(f"      保留: {comp} (层={comp_type}, score={scores.get(comp, 0):.4f})")
 
         return {
             "refined_candidates": refined,
@@ -166,7 +139,6 @@ class FaultIdentificationAgent(BaseAgent):
             "needs_causal_inference": needs_causal,
             "tentative_root_cause": tentative,
             "layer_scores": dict(layer_scores),
-            "candidate_scores": {component: round(score, 6) for component, score in evidence_scores.items()},
             "confidence_single": confidence_single,
         }
 

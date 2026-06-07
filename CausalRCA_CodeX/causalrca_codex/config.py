@@ -16,9 +16,6 @@ class AgentLoopConfig:
     openrca_root: Path = field(default_factory=default_openrca_root)
     dataset_root: Optional[Path] = None
     output_root: Optional[Path] = None
-    # 当前运行的时间戳输出目录（run_test.py 创建）
-    # 用于保存因果图等 per-run 产物：<run_output_dir>/causal_graphs/
-    run_output_dir: Optional[Path] = None
 
     max_iterations: int = 30
     top_k: int = 4
@@ -42,13 +39,14 @@ class AgentLoopConfig:
     lambda_call_count: float = 5.0
     lambda_early: float = 300.0
 
-    # Scheme-F 融合权重（技术方案精确数值）
-    # 无LLM: w = 0.35*sA + 0.30*sB + 0.35*sD
-    # 有LLM: w = 0.25*(sA+sB+sC+sD)
+    # Scheme-F 融合权重（因果推理优先：时间序+Granger+相关性为主，类型先验为弱先验）
+    # 无LLM: w = 0.35*sA + 0.25*sB + 0.15*sE + 0.25*sD
+    # 有LLM(仅reasoning): w = 0.35*sA + 0.25*sB + 0.15*sE + 0.25*sD (边评分不用LLM)
     alpha_time: float = 0.35       # sA 时间序证据权重
-    alpha_corr: float = 0.30       # sB 相关性证据权重
-    alpha_llm: float = 0.00        # sC LLM证据权重（无LLM时为0）
-    alpha_type_prior: float = 0.35 # sD 类型先验权重
+    alpha_corr: float = 0.25       # sB 相关性证据权重
+    alpha_granger: float = 0.15    # sE Granger因果性证据权重（创新：格兰杰因果检验）
+    alpha_llm: float = 0.00        # sC LLM证据权重（边评分不用LLM，仅用reasoning）
+    alpha_type_prior: float = 0.25 # sD 类型先验权重（降低：减少组件类型偏置）
 
     eta_explain: float = 0.15
     eta_source: float = 0.40

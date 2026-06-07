@@ -5,7 +5,8 @@ import re
 import sys
 import time
 from datetime import datetime
-from pathlib import Path
+
+from tqdm import tqdm
 
 sys.path.insert(0, ".")
 sys.path.insert(0, "CausalRCA_CodeX")
@@ -44,22 +45,18 @@ def main(args):
     run_log_dir = os.path.join(output_dir, "run_logs")
     os.makedirs(run_log_dir, exist_ok=True)
 
-    # 新增：每次运行创建独立的因果图文件夹
-    causal_graphs_dir = os.path.join(output_dir, "causal_graphs")
-    os.makedirs(causal_graphs_dir, exist_ok=True)
-
     log_file = os.path.join(run_log_dir, "run.log")
+    progress_file = os.path.join(run_log_dir, "progress.log")
     log_f = open(log_file, "w", encoding="utf-8")
+    progress_f = open(progress_file, "w", encoding="utf-8")
     tee = TeeOutput(sys.__stdout__, log_f)
     sys.stdout = tee
 
     print(f"[Config] Dataset={args.dataset}, Cases={args.start_idx}~{args.end_idx}, Log={log_file}")
+    print(f"  Progress : {progress_file}  (watch with: tail -f {progress_file})")
     print(f"  Output Dir: {output_dir}")
-    print(f"  Causal Graphs Dir: {causal_graphs_dir}")
 
     config = AgentLoopConfig()
-    # 把本次运行的 output_dir 传给 agent，用于保存因果图
-    config.run_output_dir = Path(output_dir)
     ds_dir = dataset_path(config, args.dataset)
     query_df = pd.read_csv(ds_dir / "query.csv")
     record_df = pd.read_csv(ds_dir / "record.csv")
@@ -79,6 +76,18 @@ def main(args):
 
     results = []
     start_time = time.time()
+
+    # Progress bar: use tqdm when stderr is a TTY, otherwise print plain lines
+    _is_tty = sys.__stderr__.isatty()
+    pbar = tqdm(
+        total=num_cases,
+        desc=f"📊 {args.dataset}",
+        unit="case",
+        bar_format="{l_bar}{bar:30}{r_bar}",
+        file=sys.__stderr__,
+        ncols=100,
+        disable=not _is_tty,
+    )
 
     for idx in range(start_idx, end_idx):
         row = query_df.iloc[idx]
@@ -135,6 +144,21 @@ def main(args):
             print(f"  Time       : {case_elapsed:.1f}s")
             print(f"  {'='*60}")
 
+            # Update progress bar
+            cum_score = sum(r["score"] for r in results)
+            pbar.set_postfix_str(f"Score:{cum_score:.1f}/{len(results)} ({cum_score/len(results)*100:.0f}%) ⏱{case_elapsed:.0f}s")
+            pbar.update(1)
+            _prog_line = (
+                f"[{len(results)}/{num_cases}] "
+                f"Score:{cum_score:.1f} ({cum_score/len(results)*100:.0f}%) | "
+                f"Case:{task_index} ✅ ⏱{case_elapsed:.0f}s"
+            )
+            progress_f.write(_prog_line + "\n")
+            progress_f.flush()
+            if not _is_tty:
+                sys.__stderr__.write(_prog_line + "\n")
+                sys.__stderr__.flush()
+
         except Exception as e:
             case_elapsed = time.time() - case_start
             import traceback
@@ -152,7 +176,23 @@ def main(args):
                 }
             )
 
+            # Update progress bar for error case
+            cum_score = sum(r["score"] for r in results)
+            pbar.set_postfix_str(f"Score:{cum_score:.1f}/{len(results)} ({cum_score/len(results)*100:.0f}%) ❌{case_elapsed:.0f}s")
+            pbar.update(1)
+            _prog_line = (
+                f"[{len(results)}/{num_cases}] "
+                f"Score:{cum_score:.1f} ({cum_score/len(results)*100:.0f}%) | "
+                f"Case:{task_index} ❌ ⏱{case_elapsed:.0f}s"
+            )
+            progress_f.write(_prog_line + "\n")
+            progress_f.flush()
+            if not _is_tty:
+                sys.__stderr__.write(_prog_line + "\n")
+                sys.__stderr__.flush()
+
     elapsed = time.time() - start_time
+    pbar.close()
     df = pd.DataFrame(results)
 
     print(f"\n{'='*80}")
@@ -185,6 +225,16 @@ def main(args):
         print("  No results.")
 
     print(f"\n[Done] All output saved to: {output_dir}")
+
+    # Write final summary to progress file
+    if not df.empty:
+        total_score = df["score"].sum()
+        avg_score = df["score"].mean() * 100
+        progress_f.write(f"\n[DONE] Score:{total_score:.1f}/{len(df)} ({avg_score:.1f}%) | Time:{elapsed:.0f}s\n")
+    else:
+        progress_f.write("\n[DONE] No results.\n")
+    progress_f.flush()
+    progress_f.close()
 
     sys.stdout = sys.__stdout__
     log_f.close()

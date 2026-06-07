@@ -275,7 +275,16 @@ class OrchestratorAgent:
         agent_name = plan["agent"]
         self.workspace["current_stage"] = agent_name
         agent = self.agents[agent_name]
-        return agent.run(self.workspace, plan.get("params") or {})
+        import time as _time
+        _t0 = _time.time()
+        result = agent.run(self.workspace, plan.get("params") or {})
+        _elapsed = _time.time() - _t0
+        # Store per-agent timing in workspace for progress reporting
+        if "_agent_timings" not in self.workspace:
+            self.workspace["_agent_timings"] = {}
+        self.workspace["_agent_timings"][agent_name] = self.workspace["_agent_timings"].get(agent_name, 0.0) + _elapsed
+        print(f"    ⏱ {agent_name}: {_elapsed:.1f}s")
+        return result
 
     def evaluate(self, action_result: AgentResult, plan: Dict[str, Any]) -> Dict[str, Any]:
         """EVALUATE: 混合自评估和外部验证的质量评分。
@@ -506,7 +515,6 @@ class OrchestratorAgent:
                     "candidate_set": [],
                     "anomaly_details": {},
                     "anomaly_scores": {},
-                    "component_profiles": {},
                     "component_intensity_series": {},
                 }
             )
@@ -542,7 +550,7 @@ class OrchestratorAgent:
             )
             self.workspace["counterfactual_layer"].update(
                 {
-                    "counterfactual_scores": {},
+                    "contextual_explain_scores": {},
                     "reason_scores": {},
                     "final_root_cause": None,
                 }

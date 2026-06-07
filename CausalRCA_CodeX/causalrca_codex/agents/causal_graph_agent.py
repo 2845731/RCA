@@ -7,10 +7,11 @@ from typing import Any, Dict, List, Tuple
 import pandas as pd
 
 from causalrca_codex.agents.base import BaseAgent
-from causalrca_codex.agents.log_topology_agent import LogTopologyAgent
 from causalrca_codex.core.component import infer_component_type
 from causalrca_codex.core.graph_ops import (
     build_call_counts,
+    combined_corr_scores,
+    granger_causality_score,
     heuristic_domain_score,
     infer_missing_dependencies,
     lagged_corr_score,
@@ -20,7 +21,7 @@ from causalrca_codex.core.graph_ops import (
     type_prior_score,
 )
 from causalrca_codex.llm import LLMClient
-from causalrca_codex.prompts import CAUSAL_EDGE_PROMPT
+from causalrca_codex.prompts import CAUSAL_EDGE_BATCH_PROMPT, CAUSAL_EDGE_PROMPT
 from causalrca_codex.schemas import WeightedCausalGraph
 
 
@@ -64,159 +65,70 @@ class CausalGraphAgent(BaseAgent):
         expand_mode = str(params.get("expand_mode", self.config.expand_mode))
         refined = list(workspace["fault_id_layer"].get("refined_candidates", []))
         anomalous = list(workspace["association_layer"].get("candidate_set", []))
-
-        # ====================================================================
-        # 数据源分配（与 DataAgent 数据范围规则严格一致）
-        # - 图1 调用图骨架：使用全天 trace（raw_traces_full_day）
-        #   原因：窗口内 trace 可能不完整（尤其故障刚开始的几分钟内），只用
-        #   窗口 trace 会漏掉大量背景调用关系，导致调用图骨架失真。
-        # - 图2 因果图边权重/相关性：使用故障窗口内 trace（raw_traces）
-        #   原因：仅在故障窗口内的事件才有诊断意义，相关性计算需要贴合
-        #   故障时间窗。
-        # ====================================================================
-        trace_frames_full_day = workspace["data_layer"].get("raw_traces_full_day", [])
-        trace_frames_window = workspace["data_layer"].get("raw_traces", [])
+        trace_frames = workspace["data_layer"].get("raw_traces", [])
         query = workspace["task"]["query"]
-        tw = workspace["data_layer"].get("trace_time_windows", {})
-
-        # 输入数据规模统计
-        def _frame_rows(df_or_frame):
-            """兼容 TelemetryFrame / DataFrame 的行数读取."""
-            if hasattr(df_or_frame, "rows"):  # TelemetryFrame
-                try:
-                    return int(df_or_frame.rows)
-                except Exception:
-                    return 0
-            try:
-                return int(len(df_or_frame))
-            except Exception:
-                return 0
-
-        def _trace_stats(frames, label):
-            n_files = len(frames)
-            n_rows = int(sum(_frame_rows(df) for df in frames)) if frames else 0
-            print(f"    [CausalGraphAgent][输入] {label}: 文件数={n_files}  span行数={n_rows}")
-            return n_files, n_rows
-
-        print(f"    [CausalGraphAgent] ★ 数据范围说明：")
-        print(f"      - 图1 调用图骨架 → 使用【全天 trace】 (DataAgent.raw_traces_full_day)")
-        print(f"      - 图2 因果图     → 使用【故障窗口内 trace】 (DataAgent.raw_traces)")
-        print(f"      - 故障时间窗   : [{tw.get('effective_start_ts', '?')}, {tw.get('end_ts', '?')}]  (epoch秒)")
-        if query.start_time and query.end_time:
-            print(f"      - 人类可读窗口 : {query.start_time}  ~  {query.end_time}")
+        print(f"    [CausalGraphAgent] 读取 data_layer.raw_traces={len(trace_frames)} trace文件")
         print(f"    [CausalGraphAgent] 读取 fault_id_layer.refined_candidates={len(refined)} 个精炼组件")
-        print(f"    [CausalGraphAgent] expand_mode={expand_mode} | EdgeWeight = fused topology + telemetry support")
+        print(f"    [CausalGraphAgent] expand_mode={expand_mode} | 边权重公式: w=r_trace*s_F + (1-r_trace)*s_prior")
+        print(f"    [CausalGraphAgent] Scheme-F五因子: sA(时间序) + sB(相关性) + sE(Granger因果) + sD(类型先验)")
 
-        n_files_day, n_rows_day = _trace_stats(trace_frames_full_day, "[图1] 全天 trace")
-        n_files_win, n_rows_win = _trace_stats(trace_frames_window, "[图2] 窗口 trace")
+        # Step 4.1: 从全天trace提取调用关系
+        call_counts = build_call_counts(trace_frames, query)
+        print(f"    [CausalGraphAgent] 步骤1: trace提取调用对数={len(call_counts)}")
 
-        # --------------------------------------------------------------------
-        # 步骤1（图1）: 从全天 trace 提取调用关系，构建调用图骨架
-        # 输入: trace_frames_full_day  (List[DataFrame], 每行=一个 span)
-        # 列匹配: (trace_id, span_id, parent_id, cmdb_id) 或 (traceId,id,pid,cmdb_id)
-        #        或 (cmdb_id, dsName) / (cmdb_id, serviceName)
-        # 输出: {(caller, callee): call_count}
-        # 目的: 还原完整的组件间调用拓扑，作为因果图（图2）的骨架
-        # --------------------------------------------------------------------
-        try:
-            trace_call_counts = build_call_counts(trace_frames_full_day, query)
-        except Exception as exc:
-            print(f"    [CausalGraphAgent][错误] build_call_counts 失败: {type(exc).__name__}: {exc}")
-            trace_call_counts = {}
-        call_counts = dict(trace_call_counts)
-        print(f"    [CausalGraphAgent] 步骤1: 全天 trace→ 调用对数={len(call_counts)}, "
-              f"输入 span行数={n_rows_day} (来自 {n_files_day} 个文件)")
-        top5 = sorted(call_counts.items(), key=lambda kv: -kv[1])[:5]
-        if top5:
-            print(f"    [CausalGraphAgent] 步骤1 样例: top-5 高频调用对 (caller->callee: count):")
-            for (c, ca), cnt in top5:
-                print(f"      - {c} -> {ca} : {cnt}")
-
-        # ====================================================================
-        # 步骤1补：缺失依赖推断 —— 已禁用
-        # 原因：原 infer_missing_dependencies() 按组件类型 (db/redis/node) 推断
-        #       "service→db" 全连接边，会引入大量噪声（n×m 条臆测边），
-        #       使根因排序时所有 db 看起来都"差不多像根因"，反而稀释了
-        #       真实异常路径的区分度。
-        # 替代方案：让 expand_mode="full_path" 在 BFS 时基于真实 trace 边
-        #           自然补全节点；缺失的边让它"诚实地缺失"。
-        # 如需重新启用，请先修复以下两个问题：
-        #   1) 推断方向与 docstring 注释不一致（代码写 service→db，注释写 db→service）
-        #   2) 完全不知道某个 db 实际被哪些 service 调用，一律假定全部
-        # ====================================================================
-        # call_counts = infer_missing_dependencies(call_counts, refined, query)
-        print(f"    [CausalGraphAgent] 步骤1补: 缺失依赖推断已禁用 (使用真实 trace 边: {len(call_counts)} 条)")
-
-        # ====================================================================
-        # 步骤1.5: LogTopologyAgent (日志挖掘的拓扑补充)
-        # 从故障窗口 log 中挖掘 service->db/redis 边, 与主图合并。
-        # 详细过程由 LogTopologyAgent 自己打印。
-        # ====================================================================
-        try:
-            log_agent = LogTopologyAgent(self.config)
-            # 注意: 此时 causal_graph_layer 还没建立, LogTopologyAgent 会去
-            # data_layer/local_call_graph / 都没找到时, 认为主图边数 = 0
-            # 我们手动注入一个临时字段, 让 LogTopologyAgent 能读到主图
-            workspace.setdefault("data_layer", {})["local_call_graph"] = {
-                f"{k[0]}->{k[1]}": v for k, v in call_counts.items()
-            }
-            log_agent._execute(workspace, params)
-        except Exception as exc:
-            print(f"    [CausalGraphAgent][错误] LogTopologyAgent 失败: {type(exc).__name__}: {exc}")
-            workspace.setdefault("log_topology_layer", {})
-            workspace["log_topology_layer"]["call_counts"] = {}
-            workspace["log_topology_layer"]["status"] = "FAILED"
-        # 取出挖掘结果
-        log_layer = workspace.get("log_topology_layer", {})
-        log_call_counts = log_layer.get("call_counts", {})
-        log_status = log_layer.get("status", "EMPTY")
-        log_max_r = float(log_layer.get("max_r_trace", 0.55))
-
-        # 合并策略: max(主图, log) + log 独有新增
-        merged = dict(call_counts)
-        n_new = 0
-        n_existed = 0
-        for k, v in log_call_counts.items():
-            if k in merged:
-                # 已存在的边, 取较大权重 (体现多源证据一致性)
-                if v > merged[k]:
-                    merged[k] = v
-                n_existed += 1
-            else:
-                # 新增边
-                merged[k] = v
-                n_new += 1
-
-        # 主图中标记"来自 log" 标签 (用于 r_trace 上限)
-        from_log_keys = set(log_call_counts.keys())
-
-        print(f"    [CausalGraphAgent] 步骤1.5: LogTopologyAgent 合并完成")
-        print(f"    [CausalGraphAgent]   log 拓扑状态: {log_status}")
-        print(f"    [CausalGraphAgent]   log 拓扑边数: {len(log_call_counts)}")
-        print(f"    [CausalGraphAgent]   合并后调用对: {len(merged)} (新增 {n_new}, 共同 {n_existed})")
-        call_counts = merged
-        # 把"主图原始边"和"log 拓扑边"区分开 (传后续步骤)
-        workspace["data_layer"]["_trace_call_counts"] = {
-            f"{k[0]}->{k[1]}": v for k, v in trace_call_counts.items()
-        }
-        workspace["data_layer"]["_from_log_topology_keys"] = {
-            f"{k[0]}->{k[1]}" for k in from_log_keys
-        }
+        # Infer missing dependencies for db/redis/node components
+        # (trace data often doesn't include database spans)
+        call_counts = infer_missing_dependencies(call_counts, refined, query)
+        print(f"    [CausalGraphAgent] 步骤1补: 缺失依赖推断后调用对数={len(call_counts)}")
 
         # Step 4.3: 根据expand_mode选择图节点
         selected_nodes = select_graph_nodes(call_counts, refined, anomalous, expand_mode)
         if not selected_nodes:
             selected_nodes = set(refined or anomalous)
-        # 把 log 拓扑独有的节点也加进来 (扩展图)
-        for k in from_log_keys:
-            selected_nodes.add(k[0])
-            selected_nodes.add(k[1])
         print(f"    [CausalGraphAgent] 步骤2: 选中节点数={len(selected_nodes)}")
 
         graph = WeightedCausalGraph()
         anomaly_scores = workspace["association_layer"].get("anomaly_scores", {})
         intensity = workspace["association_layer"].get("component_intensity_series", {})
         first_ts = workspace["association_layer"].get("first_anomaly_ts", {})
+        anomaly_details = workspace["association_layer"].get("anomaly_details", {})
+
+        # Innovation: Multi-resolution onset time for temporal discrimination.
+        # Use the finest-resolution onset time (1min scale) for each component.
+        # This gives much better temporal ordering than the 30-minute window.
+        multi_res_onset = workspace["association_layer"].get("multi_resolution_onset", {})
+        per_kpi_onset = workspace["association_layer"].get("per_kpi_onset", {})
+        onset_ts = {}
+        for comp in selected_nodes:
+            # Priority 1: Multi-resolution 1-minute onset (finest scale)
+            comp_res = multi_res_onset.get(comp, {})
+            if "60s" in comp_res:
+                onset_ts[comp] = comp_res["60s"]
+            elif "300s" in comp_res:
+                onset_ts[comp] = comp_res["300s"]
+            elif "900s" in comp_res:
+                onset_ts[comp] = comp_res["900s"]
+            else:
+                # Priority 2: Per-KPI onset
+                kpi_times = per_kpi_onset.get(comp, {})
+                if kpi_times:
+                    onset_ts[comp] = min(kpi_times.values())
+                else:
+                    # Priority 3: Segment-based onset
+                    details = anomaly_details.get(comp, [])
+                    earliest = None
+                    for seg in details:
+                        points = seg.get("points", [])
+                        if points:
+                            for pt in points:
+                                if float(pt.get("deviation", 0.0)) >= 0.3:
+                                    ts = int(pt.get("timestamp", 0))
+                                    if earliest is None or ts < earliest:
+                                        earliest = ts
+                                    break
+                        elif earliest is None:
+                            earliest = int(seg.get("start_ts", 0))
+                    onset_ts[comp] = earliest if earliest is not None else first_ts.get(comp)
 
         # 添加节点（附带severity、时间、KPI、类型属性）
         for node in selected_nodes:
@@ -230,31 +142,35 @@ class CausalGraphAgent(BaseAgent):
         # Step 4.2 + 4.4: 反转边方向 + Scheme-F计算边权
         # 反转：caller→callee 变为 callee→caller（故障传播方向）
         # 当callee故障时，caller的请求会失败，故障从callee传播到caller。
-        edge_scores = {}
-        from_log_keys = workspace["data_layer"].get("_from_log_topology_keys", set())
-        # log_topology 边在 call_counts 中也以 (caller, callee) 键存在 (来自合并 step 1.5)
-        # 因此这里直接复用 call_counts, 但同时单独维护 log_call_counts_dict 用于
-        # 查询某条边是否被 log_topology 确认, 与 trace 重合时给 r_trace 多源证据加成
-        log_call_counts_dict = log_call_counts if isinstance(log_call_counts, dict) else {}
-        for (caller, callee), count in call_counts.items():
+
+        # Collect all valid edges for batch LLM scoring
+        valid_edges = []
+        for (caller, callee), count in sorted(call_counts.items(), key=lambda x: (x[0][0], x[0][1])):
             source = callee
             target = caller
             if source not in selected_nodes or target not in selected_nodes or source == target:
                 continue
+            valid_edges.append((source, target, count))
 
-            # Scheme-F 四因子
-            s_time = time_precedence_score(first_ts.get(source), first_ts.get(target), self.config)
-            s_corr = lagged_corr_score(intensity.get(source), intensity.get(target))
-            s_llm = self._domain_score(source, target, count, first_ts)
+        # Batch LLM scoring (one API call for all edges)
+        llm_scores = self._batch_domain_scores(valid_edges, first_ts)
+
+        edge_scores = {}
+        for source, target, count in valid_edges:
+            # Scheme-F 五因子（创新：加入Granger因果性 sE）
+            s_time = time_precedence_score(onset_ts.get(source), onset_ts.get(target), self.config)
+            s_corr, s_granger = combined_corr_scores(intensity.get(source), intensity.get(target))
+            s_llm = llm_scores.get(f"{source}->{target}")
             s_prior = type_prior_score(source, target, self.config)
 
-            # 融合权重（技术方案公式）
+            # 融合权重（创新：五因子融合公式）
             if self.config.use_llm_edge_scoring and s_llm is not None:
-                s_f = 0.25 * s_time + 0.25 * s_corr + 0.25 * s_llm + 0.25 * s_prior
+                s_f = 0.20 * s_time + 0.20 * s_corr + 0.20 * s_granger + 0.20 * s_llm + 0.20 * s_prior
             else:
                 s_f = (
                     self.config.alpha_time * s_time
                     + self.config.alpha_corr * s_corr
+                    + self.config.alpha_granger * s_granger
                     + self.config.alpha_type_prior * s_prior
                 )
 
@@ -265,46 +181,21 @@ class CausalGraphAgent(BaseAgent):
                 elif s_llm < 0.3 and s_corr > 0.8:
                     s_f = min(1.0, s_f * 1.3)
 
-            trace_count = int(trace_call_counts.get((caller, callee), 0))
-            is_inferred = trace_count <= 0
-            is_from_log = f"{caller}->{callee}" in from_log_keys
-            log_overlap_count = int(log_call_counts_dict.get((caller, callee), 0)) if is_from_log else 0
-            if is_from_log and trace_count <= 0:
-                # 来自 log 拓扑的边 (DBCP2 datasource / Jedis pool)
-                # 中等置信度: 上限 0.55, 介于推断(0.45) 和 trace(1.0) 之间
-                r_trace = min(0.55, 0.20 + 0.30 * max(s_time, s_corr))
-                # 用一个较高的 prior_anchor, 因为 log 拓扑代表"业务配置层"已知关系
-                prior_anchor = 0.50 * s_prior
-                weight = r_trace * s_f + (1.0 - r_trace) * prior_anchor
-            elif is_inferred:
-                # Inferred dependency edges are structural hypotheses, not
-                # observed traces. Let them help connect the graph, but make
-                # their weight depend on telemetry support instead of type
-                # prior alone.
-                r_trace = min(0.45, 0.10 + 0.30 * max(s_time, s_corr))
-                prior_anchor = 0.35 * s_prior
-                weight = r_trace * s_f + (1.0 - r_trace) * prior_anchor
-            else:
-                r_trace = trace_reliability(trace_count, self.config)
-                weight = r_trace * s_f + (1.0 - r_trace) * s_prior
-            # 多源证据一致性加成: 若该 trace 边同时被 log_topology 确认 (access_log 等)
-            # 视为独立证据交叉验证, 给予 r_trace 最多 +5% 上限
-            if log_overlap_count > 0 and trace_count > 0:
-                r_trace = min(1.0, r_trace + 0.05)
-                weight = min(1.0, weight * 1.05)
-            weight = max(0.0, min(1.0, weight))
+            r_trace = trace_reliability(count, self.config)
+            weight = max(0.0, min(1.0, r_trace * s_f + (1.0 - r_trace) * s_prior))
 
             scores = {
-                "observed_trace": trace_count > 0,
-                "from_log_topology": is_from_log and trace_count <= 0,
-                "confirmed_by_log": log_overlap_count > 0 and trace_count > 0,
+                "s_A_time": round(s_time, 6),
+                "s_B_corr": round(s_corr, 6),
+                "s_E_granger": round(s_granger, 6),
+                "s_C_domain": round(s_llm, 6) if s_llm is not None else None,
+                "s_D_type_prior": round(s_prior, 6),
+                "r_trace": round(r_trace, 6),
+                "s_F": round(s_f, 6),
             }
             graph.add_edge(source, target, weight=round(weight, 6), call_count=count, scores=scores)
-            edge_detail = {
-                "weight": round(weight, 6),
-                "call_count": count,
-                **scores,
-            }
+            edge_detail = dict(scores)
+            edge_detail.update({"weight": round(weight, 6), "call_count": count})
             edge_scores[f"{source}->{target}"] = edge_detail
 
         # 无边时添加孤立节点
@@ -324,22 +215,11 @@ class CausalGraphAgent(BaseAgent):
 
         # ============================================================
         # 保存因果图到独立文件夹（多个图）
-        # 优先路径: config.run_output_dir/causal_graphs/<dataset>/row_X/
-        #   (这是 run_test.py 每次运行生成的时间戳目录)
-        # 兜底路径: config.resolved_output_root()/<dataset>/row_X_causal_graphs/
         # ============================================================
-        run_output_dir = getattr(self.config, "run_output_dir", None)
-        if run_output_dir is not None:
-            run_output_dir = Path(run_output_dir)
-            case_dir = run_output_dir / "causal_graphs" / query.dataset / f"row_{query.row_id:04d}"
-        else:
-            output_root = Path(self.config.resolved_output_root()) if hasattr(self.config, "resolved_output_root") else None
-            if output_root is not None:
-                case_dir = output_root / query.dataset / f"row_{query.row_id}_causal_graphs"
-            else:
-                case_dir = None
+        output_root = Path(self.config.resolved_output_root()) if hasattr(self.config, "resolved_output_root") else None
         graph_save_dir: Path = None  # type: ignore
-        if case_dir is not None:
+        if output_root is not None:
+            case_dir = output_root / query.dataset / f"row_{query.row_id}_causal_graphs"
             case_dir.mkdir(parents=True, exist_ok=True)
             graph_save_dir = case_dir
             # 图1：调用图骨架（原始 trace，caller->callee，权重=call_count）
@@ -400,47 +280,19 @@ class CausalGraphAgent(BaseAgent):
         print(f"    [CausalGraphAgent] 节点={len(graph.nodes)} 边={len(graph.edges)} expand_mode={expand_mode}")
         if graph_save_dir is not None:
             print(f"    [CausalGraphAgent] 因果图已保存到文件夹: {graph_save_dir}")
-        # ====================================================================
-        # 图1: 调用图骨架 —— 打印
-        # 数据来源: 全天 trace (raw_traces_full_day)
-        # 构建方法: build_call_counts() —— 按 (trace_id, parent_id→span_id) 还原
-        #           caller→callee，每对调用统计全天 call_count 作为权重
-        # 方向语义: caller -> callee (调用方向)
-        # ====================================================================
+        # 图1: 调用图骨架
         print(f"    [CausalGraphAgent] --- 图1: 调用图骨架 (caller->callee, 权重=call_count) ---")
-        print(f"      数据源 : 全天 trace  ({n_files_day} 个文件, 共 {n_rows_day} 个 span)")
-        print(f"      时间窗 : 全天 24h（包含故障前后）")
-        if tw:
-            print(f"      故障窗 : [{tw.get('effective_start_ts', '?')}, {tw.get('end_ts', '?')}] (epoch秒) "
-                  f"—— 仅用于图2相关性计算")
-        print(f"      调用对 : 共 {len(call_counts)} 个 caller->callee 关系")
         sorted_call = sorted(call_counts.items(), key=lambda x: -x[1])
         for i, ((caller, callee), cnt) in enumerate(sorted_call, 1):
             print(f"      #{i:>2} {caller}({infer_component_type(caller)}) --(calls={cnt})--> {callee}({infer_component_type(callee)})")
-        # ====================================================================
-        # 图2: 因果图 —— 打印
-        # 数据来源:
-        #   - 节点: 来自图1调用图骨架的 selected_nodes (全天后筛选)
-        #   - 边权重: Scheme-F 融合 = r_trace * s_F(故障窗口内span相关性)
-        #                          + (1-r_trace) * s_prior(全局调用频次r_trace, 全天统计)
-        # 方向语义: callee -> caller (故障传播方向，与图1相反)
-        # 时间窗: 故障窗口内 (effective_start_ts, end_ts) 用于计算 s_F
-        # ====================================================================
         # 图2: 因果图
         print(f"    [CausalGraphAgent] --- 图2: 因果图 (callee->caller, 故障传播方向, 权重=Scheme-F) ---")
-        print(f"      数据源 : 节点←图1全天trace骨架, 边权重←Scheme-F(故障窗口span相关性+全天调用先验)")
-        if tw:
-            print(f"      时间窗 : 故障窗口 [{tw.get('effective_start_ts', '?')}, {tw.get('end_ts', '?')}] (epoch秒)")
-            print(f"               (窗口 trace 文件数={n_files_win}, span行数={n_rows_win})")
         if graph.edges:
             for i, edge in enumerate(sorted(graph.edges, key=lambda x: -x.weight), 1):
                 src_type = infer_component_type(edge.source)
                 tgt_type = infer_component_type(edge.target)
                 s = edge.scores or {}
-                source_flag = "trace" if s.get("observed_trace") else "log" if s.get("from_log_topology") else "inferred"
-                if s.get("confirmed_by_log"):
-                    source_flag = "trace+log"
-                print(f"      #{i:>2} {edge.source}({src_type}) --(w={edge.weight:.4f}, calls={edge.call_count}, source={source_flag})--> {edge.target}({tgt_type})")
+                print(f"      #{i:>2} {edge.source}({src_type}) --(w={edge.weight:.4f}, calls={edge.call_count}, sA={s.get('s_A_time',0):.3f}, sB={s.get('s_B_corr',0):.3f}, sE={s.get('s_E_granger',0):.3f}, sD={s.get('s_D_type_prior',0):.3f})--> {edge.target}({tgt_type})")
         else:
             print(f"      (无因果边)")
 
@@ -507,3 +359,44 @@ class CausalGraphAgent(BaseAgent):
             return max(0.0, min(1.0, float(payload.get("propagation_probability", fallback))))
         except Exception:
             return fallback
+
+    def _batch_domain_scores(
+        self, edges: list, first_ts: Dict[str, Any]
+    ) -> Dict[str, float]:
+        """Batch score all edges with a single LLM call."""
+        fallbacks = {
+            f"{s}->{t}": heuristic_domain_score(s, t, edge_is_trace_backed=c > 0)
+            for s, t, c in edges
+        }
+        if not self.config.use_llm_edge_scoring or not edges:
+            return fallbacks
+
+        from causalrca_codex.prompts import CAUSAL_EDGE_BATCH_PROMPT
+
+        edge_descriptions = []
+        for i, (source, target, call_count) in enumerate(edges):
+            edge_descriptions.append(
+                f"[{i}] {source} -> {target} (calls={call_count}, "
+                f"X_ts={first_ts.get(source)}, Y_ts={first_ts.get(target)})"
+            )
+
+        client = LLMClient(self.config)
+        payload = client.complete_json(
+            CAUSAL_EDGE_BATCH_PROMPT,
+            "Edges to score:\n" + "\n".join(edge_descriptions),
+        )
+
+        if not payload or not isinstance(payload, list):
+            return fallbacks
+
+        results = dict(fallbacks)
+        for item in payload:
+            try:
+                idx = int(item.get("edge_id", -1))
+                if 0 <= idx < len(edges):
+                    key = f"{edges[idx][0]}->{edges[idx][1]}"
+                    val = float(item.get("propagation_probability", fallbacks[key]))
+                    results[key] = max(0.0, min(1.0, val))
+            except (ValueError, TypeError, KeyError):
+                continue
+        return results

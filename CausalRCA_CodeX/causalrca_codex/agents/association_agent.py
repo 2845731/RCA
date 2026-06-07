@@ -7,7 +7,6 @@ import pandas as pd
 
 from causalrca_codex.agents.base import BaseAgent
 from causalrca_codex.core.component import infer_component_type
-from causalrca_codex.core.evidence import build_component_profiles
 from causalrca_codex.core.reasoning import absolute_domain_deviation, is_low_sensitive_kpi, reason_hint
 from causalrca_codex.core.time_utils import epoch_to_local
 from causalrca_codex.schemas import AnomalySegment, MetricSeries, RCAQuery
@@ -134,7 +133,6 @@ class AssociationAgent(BaseAgent):
             for component, segments in by_component.items()
             if component in candidate_set
         }
-        component_profiles = build_component_profiles(anomaly_details, query.candidate_reasons)
 
         serializable_intensity = {
             component: frame.to_dict("records")
@@ -142,13 +140,33 @@ class AssociationAgent(BaseAgent):
             if component in candidate_set
         }
 
+        # Innovation: Store per-KPI onset times for more precise temporal discrimination.
+        per_kpi_onset: Dict[str, Dict[str, int]] = {}
+        for component, segments in by_component.items():
+            kpi_times: Dict[str, int] = {}
+            for seg in segments:
+                kpi = seg.kpi
+                start = seg.start_ts
+                if kpi not in kpi_times or start < kpi_times[kpi]:
+                    kpi_times[kpi] = start
+            per_kpi_onset[component] = kpi_times
+
+        # Innovation: Multi-resolution anomaly onset detection.
+        # Analyze at 1min, 5min, 15min scales to detect which component
+        # started anomalous FIRST at the finest resolution.
+        candidate_set_set = set(candidate_set)
+        multi_res_onset = self._multi_resolution_onset(
+            series_map, query, candidate_set_set, beta_min
+        )
+
         workspace["association_layer"].update(
             {
                 "candidate_set": candidate_set,
                 "anomaly_details": anomaly_details,
                 "anomaly_scores": {component: component_scores[component] for component in candidate_set},
                 "first_anomaly_ts": {component: first_anomaly_ts.get(component) for component in candidate_set},
-                "component_profiles": component_profiles,
+                "per_kpi_onset": per_kpi_onset,
+                "multi_resolution_onset": multi_res_onset,
                 "component_intensity_series": intensity_by_component,
                 "params_used": {
                     "min_fault_points": min_points,
@@ -177,7 +195,6 @@ class AssociationAgent(BaseAgent):
             "anomaly_details": anomaly_details,
             "anomaly_scores": workspace["association_layer"]["anomaly_scores"],
             "first_anomaly_ts": workspace["association_layer"]["first_anomaly_ts"],
-            "component_profiles": component_profiles,
             "component_intensity_series": serializable_intensity,
         }
 
@@ -191,6 +208,20 @@ class AssociationAgent(BaseAgent):
         window = item.window.copy()
         if window.empty:
             return [], None
+
+        # Innovation: Multi-window baseline comparison.
+        # Compute pre-fault baseline (30 min before fault window) from full-day data.
+        # This gives a more precise "what changed" signal than global thresholds alone.
+        baseline_window = 1800  # 30 minutes in seconds
+        baseline_start = int(query.start_ts) - baseline_window
+        baseline_end = int(query.start_ts)
+        full = item.full
+        if not full.empty and "timestamp" in full.columns:
+            baseline_mask = (full["timestamp"] >= baseline_start) & (full["timestamp"] < baseline_end)
+            baseline_data = full[baseline_mask]
+            baseline_mean = float(baseline_data["value"].mean()) if not baseline_data.empty else item.median
+        else:
+            baseline_mean = item.median
 
         # Detect persistent saturation: if >80% of window values are above 90% of threshold
         # This catches cases where KPI is consistently near ceiling (e.g., memory at 98% all day)
@@ -227,6 +258,12 @@ class AssociationAgent(BaseAgent):
             # Domain deviation (already capped at 1.0)
             domain_dev = absolute_domain_deviation(item.kpi, value, item.median, item.threshold_high)
             high_dev = max(high_dev, domain_dev)
+            # Innovation: Baseline-relative deviation — how much did the value change
+            # from the pre-fault baseline? This is more precise than global thresholds
+            # because it detects the CHANGE, not just the absolute level.
+            baseline_diff = abs(value - baseline_mean) / max(abs(baseline_mean), 1.0)
+            baseline_dev = min(1.0, baseline_diff * 0.5)  # Scale to [0, 1]
+            high_dev = max(high_dev, baseline_dev * 0.3)  # Blend with threshold-based deviation
             # Add persistent saturation deviation
             if saturation_deviation > 0:
                 high_dev = max(high_dev, saturation_deviation)
@@ -291,6 +328,70 @@ class AssociationAgent(BaseAgent):
                 )
             )
         return segments, intensity
+
+    def _multi_resolution_onset(
+        self,
+        series_map: Dict[str, MetricSeries],
+        query: RCAQuery,
+        candidate_components: set,
+        beta_min: float,
+    ) -> Dict[str, Dict[str, int]]:
+        """Innovation: Multi-resolution anomaly onset detection.
+
+        The fundamental bottleneck in temporal discrimination is that all components
+        appear anomalous at the same time within the 30-minute fault window.
+        By analyzing at multiple time scales (1min, 5min, 15min), we can detect
+        which component's anomaly started FIRST at the finest resolution.
+
+        Algorithm:
+        1. For each time resolution R (1min, 5min, 15min):
+           a. Slide a window of size R across the fault window
+           b. For each position, compute the anomaly score for each component
+           c. Find the earliest window position where each component becomes anomalous
+        2. Return per-component onset times at each resolution
+
+        This gives a much finer temporal signal than the single 30-minute window.
+        """
+        resolutions = [60, 300, 900]  # 1min, 5min, 15min in seconds
+        result: Dict[str, Dict[str, int]] = {}
+
+        for res_sec in resolutions:
+            res_key = f"{res_sec}s"
+            for item in series_map.values():
+                if item.component not in candidate_components:
+                    continue
+                full = item.full
+                if full.empty or "timestamp" not in full.columns:
+                    continue
+
+                # Slide window of size res_sec across the fault window
+                fault_start = int(query.start_ts)
+                fault_end = int(query.end_ts)
+                best_onset = None
+
+                for window_start in range(fault_start, fault_end - res_sec + 1, res_sec // 2):
+                    window_end = window_start + res_sec
+                    mask = (full["timestamp"] >= window_start) & (full["timestamp"] < window_end)
+                    window_data = full[mask]
+                    if window_data.empty:
+                        continue
+
+                    # Check if this window shows anomalous behavior
+                    values = window_data["value"].astype(float)
+                    mean_val = values.mean()
+                    threshold = item.threshold_high
+
+                    # Is this window anomalous?
+                    if mean_val > threshold * 0.9:  # Close to or above threshold
+                        if best_onset is None or window_start < best_onset:
+                            best_onset = window_start
+
+                if best_onset is not None:
+                    if item.component not in result:
+                        result[item.component] = {}
+                    result[item.component][res_key] = best_onset
+
+        return result
 
     def _self_evaluate(
         self,

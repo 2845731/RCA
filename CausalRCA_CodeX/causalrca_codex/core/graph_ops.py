@@ -5,6 +5,7 @@ import math
 from collections import defaultdict, deque
 from typing import Dict, Iterable, List, Optional, Set, Tuple
 
+import numpy as np
 import pandas as pd
 
 from causalrca_codex.config import AgentLoopConfig
@@ -38,9 +39,6 @@ def build_call_counts(trace_frames: Iterable[pd.DataFrame], query: RCAQuery) -> 
     """
     call_counts: CallCounts = defaultdict(int)
     for df in trace_frames:
-        # 兼容 TelemetryFrame: 取出 .data
-        if hasattr(df, "data") and not isinstance(df, pd.DataFrame):
-            df = df.data
         if isinstance(df, pd.DataFrame) and df.empty:
             continue
         if not isinstance(df, pd.DataFrame):
@@ -69,33 +67,16 @@ def infer_missing_dependencies(
     refined_candidates: List[str],
     query: RCAQuery,
 ) -> CallCounts:
-    """⚠️ DEPRECATED: 此函数已被 CausalGraphAgent 禁用，引入噪声过大。
+    """Infer missing dependency edges for db/redis/node components.
 
-    推断 db/redis/node 组件的缺失依赖边。
-    历史原因：在某些 trace 数据集里，数据库/缓存组件不出现在 span 中。
-    推断规则（已弃用）:
-      - db/redis -> service/pod: typical dependency (service calls db)
-      - node -> pod/service: infrastructure dependency
-      - 推断边 call_count = 5 (db) / 3 (node)
+    In many trace datasets, database and Redis components don't appear as cmdb_id
+    in trace spans. However, service components (Tomcat, MG, IG) typically depend on
+    databases and caches. This function adds inferred edges based on domain knowledge:
+    - db/redis -> service/pod: typical dependency (service calls db)
+    - node -> pod/service: infrastructure dependency
 
-    问题:
-      1) n×m 全连接：对每个 db 配对所有 service，n×m 条臆测边
-      2) 完全不知道 db 实际被哪些 service 调用，一律假定全部
-      3) 让所有 db 看起来都"差不多像根因"，稀释真实异常路径
-
-    替代方案: 让 expand_mode="full_path" 在 BFS 时基于真实 trace 边自然
-              补全节点；如确需补全边，应从 cmdb_dependency.yaml 配置文件
-              读取，而不是从组件名字符串推断。
-
-    本函数保留在此处仅供"配置驱动版本"未来参考。
+    These inferred edges get lower call counts (5) to reflect lower confidence.
     """
-    import warnings
-    warnings.warn(
-        "infer_missing_dependencies 已弃用, 会在 CausalGraphAgent 中引入噪声。"
-        "请使用基于 cmdb_dependency.yaml 的配置驱动方案。",
-        DeprecationWarning,
-        stacklevel=2,
-    )
     inferred: CallCounts = defaultdict(int)
 
     # Separate candidates by type
@@ -148,57 +129,20 @@ def _consume_trace(
     query: RCAQuery,
     call_counts: CallCounts,
 ) -> None:
-    """从 trace DataFrame 中按 (caller, callee) 累计调用次数 (向量化版).
-
-    约定 (与旧版一致):
-      parent_span -> child_span 表示 parent 调用 child.
-      即 caller = parent 的 component, callee = child 的 component.
-    性能: 12M 行从 ~20-30 分钟降至 < 1 分钟.
-    """
     use = df[[trace_col, span_col, parent_col, comp_col]].dropna(subset=[trace_col, span_col, comp_col])
-    n_total = len(use)
-    n_traces = use[trace_col].nunique()
-    if n_total > 100_000:
-        print(f"    [graph_ops] _consume_trace 进度: 总行数={n_total}, trace 数={n_traces} (向量化)", flush=True)
-
-    # 1) (trace_id, span_id) -> normalized_component
-    span_norm = (
-        use.groupby([trace_col, span_col])[comp_col]
-        .first()
-        .map(lambda c: normalize_component_id(c, query.candidate_components))
-    )
-    # 2) 取出每行: child_span 的 component = callee
-    #    parent 的 component    = caller
-    span_norm_df = span_norm.reset_index()
-    span_norm_df.columns = [trace_col, "_span_key", "_component"]
-    use2 = use[[trace_col, span_col, parent_col]].copy()
-    use2["_callee_key"] = use2[span_col]   # child span
-    use2["_caller_key"] = use2[parent_col] # parent span
-    # merge callee: child_span -> component
-    callee_lookup = span_norm_df.rename(columns={"_span_key": "_callee_key", "_component": "callee_norm"})
-    use2 = use2.merge(
-        callee_lookup[[trace_col, "_callee_key", "callee_norm"]],
-        on=[trace_col, "_callee_key"],
-        how="left",
-    )
-    # merge caller: parent_span -> component
-    caller_lookup = span_norm_df.rename(columns={"_span_key": "_caller_key", "_component": "caller_norm"})
-    use2 = use2.merge(
-        caller_lookup[[trace_col, "_caller_key", "caller_norm"]],
-        on=[trace_col, "_caller_key"],
-        how="left",
-    )
-    # 3) 过滤并累加
-    pair = use2[["caller_norm", "callee_norm"]].dropna()
-    pair = pair[(pair["caller_norm"] != "") & (pair["callee_norm"] != "")]
-    pair = pair[pair["caller_norm"] != pair["callee_norm"]]
-    if not pair.empty:
-        vc = pair.value_counts()
-        for (caller, callee), cnt in vc.items():
-            if caller and callee:
-                call_counts[(caller, callee)] += int(cnt)
-    if n_total > 100_000:
-        print(f"    [graph_ops] _consume_trace 完成: call_counts={len(call_counts)} 对", flush=True)
+    for _, group in use.groupby(trace_col):
+        span_to_component = {
+            str(row[span_col]): normalize_component_id(row[comp_col], query.candidate_components)
+            for _, row in group.iterrows()
+        }
+        for _, row in group.iterrows():
+            parent = str(row[parent_col])
+            child_span = str(row[span_col])
+            if parent in span_to_component and child_span in span_to_component:
+                caller = span_to_component[parent]
+                callee = span_to_component[child_span]
+                if caller and callee and caller != callee:
+                    call_counts[(caller, callee)] += 1
 
 
 def select_graph_nodes(
@@ -277,10 +221,9 @@ def lagged_corr_score(series_x: Optional[pd.DataFrame], series_y: Optional[pd.Da
 
     Returns:
         0~1 之间的相关性得分（取绝对值后的最大值）
-        注意：无法计算时返回 0.00001（而非 0.0），避免融合时直接抹杀证据
     """
     if series_x is None or series_y is None or series_x.empty or series_y.empty:
-        return 0.00001
+        return 0.0
     merged = pd.merge(
         series_x.rename(columns={"intensity": "x"}),
         series_y.rename(columns={"intensity": "y"}),
@@ -288,14 +231,173 @@ def lagged_corr_score(series_x: Optional[pd.DataFrame], series_y: Optional[pd.Da
         how="outer",
     ).fillna(0.0)
     if len(merged) < 3:
-        return 0.00001
+        return 0.0
     best = 0.0
     for lag in range(max_lag + 1):
         shifted = merged["y"].shift(-lag)
         corr = merged["x"].corr(shifted)
         if corr == corr:  # 排除 NaN
             best = max(best, abs(float(corr)))  # 取绝对值：传播可正可负
-    return max(0.00001, min(1.0, best))
+    return max(0.0, min(1.0, best))
+
+
+def granger_causality_score(
+    series_x: Optional[pd.DataFrame],
+    series_y: Optional[pd.DataFrame],
+    max_lag: int = 5,
+) -> float:
+    """Innovation: Granger-style causality score for directional causal evidence.
+
+    Unlike symmetric correlation (Scheme-B), this tests DIRECTIONAL precedence:
+    if X's anomalies help predict Y's anomalies better than Y predicts X,
+    that's evidence for X→Y causality (X is the cause, Y is the effect).
+
+    Algorithm:
+    1. Compute cross-correlation at positive lags (X leads Y) and negative lags (Y leads X)
+    2. best_forward = max |corr| at lag 1..max_lag (X leads Y)
+    3. best_reverse = max |corr| at lag -1..-max_lag (Y leads X)
+    4. directional_score = (best_forward - best_reverse + 1) / 2
+       - If X strongly leads Y: best_forward >> best_reverse → score ≈ 1.0
+       - If Y strongly leads X: best_forward << best_reverse → score ≈ 0.0
+       - If symmetric (no direction): score ≈ 0.5
+
+    This is a proper Granger-inspired directional signal that complements
+    the symmetric lagged correlation (Scheme-B).
+
+    Args:
+        series_x: X component's anomaly intensity series (source in causal graph)
+        series_y: Y component's anomaly intensity series (target in causal graph)
+        max_lag: Maximum lag steps (default 5)
+
+    Returns:
+        0~1 score: higher = more evidence that X→Y (X causes Y)
+    """
+    if series_x is None or series_y is None or series_x.empty or series_y.empty:
+        return 0.5  # No data → neutral
+
+    merged = pd.merge(
+        series_x.rename(columns={"intensity": "x"}),
+        series_y.rename(columns={"intensity": "y"}),
+        on="timestamp",
+        how="outer",
+    ).fillna(0.0)
+    if len(merged) < 4:
+        return 0.5
+
+    # Forward: X leads Y (positive lag = Y is shifted backward)
+    best_forward = 0.0
+    for lag in range(1, max_lag + 1):
+        shifted_y = merged["y"].shift(-lag)
+        corr = merged["x"].corr(shifted_y)
+        if corr == corr:  # not NaN
+            best_forward = max(best_forward, abs(float(corr)))
+
+    # Reverse: Y leads X (negative lag = X is shifted backward)
+    best_reverse = 0.0
+    for lag in range(1, max_lag + 1):
+        shifted_x = merged["x"].shift(-lag)
+        corr = merged["y"].corr(shifted_x)
+        if corr == corr:
+            best_reverse = max(best_reverse, abs(float(corr)))
+
+    # Directional score: normalized difference
+    # If forward >> reverse: score near 1.0 (X causes Y)
+    # If forward << reverse: score near 0.0 (Y causes X)
+    # If symmetric: score near 0.5
+    total = best_forward + best_reverse
+    if total < 1e-6:
+        return 0.5
+    directional = (best_forward - best_reverse + total) / (2.0 * total)
+    return max(0.0, min(1.0, directional))
+
+
+# Module-level cache for merged DataFrames
+_MERGE_CACHE: Dict[str, pd.DataFrame] = {}
+
+
+def combined_corr_scores(
+    series_x: Optional[pd.DataFrame],
+    series_y: Optional[pd.DataFrame],
+    max_lag: int = 5,
+) -> Tuple[float, float]:
+    """Compute both lagged_corr_score and granger_causality_score in one pass.
+
+    This avoids redundant pd.merge() and correlation computations.
+    Returns (lagged_corr, granger_causality) tuple.
+    """
+    if series_x is None or series_y is None or series_x.empty or series_y.empty:
+        return 0.0, 0.5
+
+    # Cache key based on series identity (use id for speed)
+    cache_key = f"{id(series_x)}:{id(series_y)}:{max_lag}"
+    if cache_key in _MERGE_CACHE:
+        merged = _MERGE_CACHE[cache_key]
+    else:
+        merged = pd.merge(
+            series_x.rename(columns={"intensity": "x"}),
+            series_y.rename(columns={"intensity": "y"}),
+            on="timestamp",
+            how="outer",
+        ).fillna(0.0)
+        if len(merged) >= 3:
+            _MERGE_CACHE[cache_key] = merged
+
+    n = len(merged)
+    if n < 3:
+        return 0.0, 0.5
+
+    x_vals = merged["x"].values.astype(np.float64)
+    y_vals = merged["y"].values.astype(np.float64)
+
+    # Vectorized correlation computation using numpy
+    def _corr_at_lag(arr_x: np.ndarray, arr_y: np.ndarray, lag: int) -> float:
+        if lag == 0:
+            a, b = arr_x, arr_y
+        elif lag > 0:
+            a, b = arr_x[:len(arr_x)-lag], arr_y[lag:]
+        else:
+            a, b = arr_x[-lag:], arr_y[:len(arr_y)+lag]
+        if len(a) < 3:
+            return float("nan")
+        # Pearson correlation via numpy (faster than pandas)
+        a_mean = np.mean(a)
+        b_mean = np.mean(b)
+        a_centered = a - a_mean
+        b_centered = b - b_mean
+        numerator = np.sum(a_centered * b_centered)
+        denominator = np.sqrt(np.sum(a_centered**2) * np.sum(b_centered**2))
+        if denominator < 1e-12:
+            return float("nan")
+        return float(numerator / denominator)
+
+    # lagged_corr_score: max |corr| at lag 0..max_lag
+    best_lagged = 0.0
+    for lag in range(max_lag + 1):
+        c = _corr_at_lag(x_vals, y_vals, lag)
+        if c == c:  # not NaN
+            best_lagged = max(best_lagged, abs(c))
+
+    # granger_causality_score: forward vs reverse
+    best_forward = 0.0
+    for lag in range(1, max_lag + 1):
+        c = _corr_at_lag(x_vals, y_vals, lag)
+        if c == c:
+            best_forward = max(best_forward, abs(c))
+
+    best_reverse = 0.0
+    for lag in range(1, max_lag + 1):
+        c = _corr_at_lag(y_vals, x_vals, lag)
+        if c == c:
+            best_reverse = max(best_reverse, abs(c))
+
+    total = best_forward + best_reverse
+    if total < 1e-6:
+        granger = 0.5
+    else:
+        granger = (best_forward - best_reverse + total) / (2.0 * total)
+        granger = max(0.0, min(1.0, granger))
+
+    return max(0.0, min(1.0, best_lagged)), granger
 
 
 def time_precedence_score(t_x: Optional[int], t_y: Optional[int], config: AgentLoopConfig) -> float:
@@ -306,8 +408,6 @@ def time_precedence_score(t_x: Optional[int], t_y: Optional[int], config: AgentL
     - dt = 0（同时异常）: score = 0.5
     - dt < 0（Y在X之前异常）: score = 0.1
 
-    注意：无法计算时返回 0.00001（而非 0.5），避免融合时时间证据不起作用
-
     Args:
         t_x: X组件首次异常时间（epoch秒）
         t_y: Y组件首次异常时间（epoch秒）
@@ -317,12 +417,12 @@ def time_precedence_score(t_x: Optional[int], t_y: Optional[int], config: AgentL
         0~1 之间的时间序得分
     """
     if t_x is None or t_y is None:
-        return 0.00001
+        return 0.5
     dt = t_y - t_x  # 秒
     if dt > 0:
         return 1.0 / (1.0 + dt / 60.0)
     if dt == 0:
-        return 0.00001
+        return 0.5
     return 0.1
 
 
@@ -408,3 +508,68 @@ def max_path_strengths(graph: WeightedCausalGraph, source: str, max_depth: int =
                 heapq.heappush(heap, (-bottleneck, edge.target, depth + 1))
 
     return best
+
+
+def causal_topology_score(
+    graph: WeightedCausalGraph,
+    component: str,
+    anomaly_scores: Dict[str, float],
+) -> float:
+    """计算因果拓扑评分（Causal Topology Score, CTS）。
+
+    基于因果图的图论结构性质，量化节点"像根因"的程度。
+    根因特征：高出度、低入度、能到达更多异常节点。
+
+    CTS(X) = α · reach_ratio + β · degree_ratio - γ · anomalous_influence
+
+    其中：
+    - reach_ratio = |R(X)| / |A|：X 能到达的异常节点比例
+    - degree_ratio = out / (out + in)：出度占比
+    - anomalous_influence = incoming_from_anomalous / total_weight：被异常父节点影响的程度
+
+    这是一个图论结构性质，不依赖于特定数据集的统计规律。
+
+    Args:
+        graph: 带权因果图
+        component: 待评估的组件
+        anomaly_scores: 所有异常组件的严重度分数
+
+    Returns:
+        0~1 之间的 CTS 分数，越高越像根因
+    """
+    anomalous_set = set(anomaly_scores.keys())
+    if not anomalous_set or not graph.has_node(component):
+        return 0.5
+
+    # 1. Reach ratio: BFS from component, count reachable anomalous nodes
+    reachable = set()
+    queue = [component]
+    visited = {component}
+    while queue:
+        node = queue.pop(0)
+        for edge in graph.outgoing(node):
+            if edge.target not in visited:
+                visited.add(edge.target)
+                if edge.target in anomalous_set:
+                    reachable.add(edge.target)
+                queue.append(edge.target)
+    reach_ratio = len(reachable) / len(anomalous_set) if anomalous_set else 0.0
+
+    # 2. Degree ratio: out / (out + in)
+    out_degree = len(list(graph.outgoing(component)))
+    in_degree = len(list(graph.incoming(component)))
+    degree_ratio = out_degree / (out_degree + in_degree + 1e-9)
+
+    # 3. Anomalous influence: incoming weight from anomalous parents / total weight
+    incoming_from_anomalous = sum(
+        float(getattr(e, 'weight', 0.5))
+        for e in graph.incoming(component)
+        if e.source in anomaly_scores
+    )
+    total_incoming = sum(float(getattr(e, 'weight', 0.5)) for e in graph.incoming(component))
+    total_outgoing = sum(float(getattr(e, 'weight', 0.5)) for e in graph.outgoing(component))
+    total_weight = total_incoming + total_outgoing + 1e-9
+    anomalous_influence = incoming_from_anomalous / total_weight
+
+    cts = 0.4 * reach_ratio + 0.35 * degree_ratio - 0.25 * anomalous_influence
+    return max(0.0, min(1.0, cts))
